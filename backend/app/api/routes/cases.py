@@ -7,16 +7,14 @@ from app.db.session import get_db
 from app.domain.decline_taxonomy import diagnose
 from app.domain.enums import CaseEventType, CaseStatus
 from app.integrations.payment_gateway import PaymentGatewayPort
-from app.models.actions import Action
 from app.models.cases import Case
 from app.models.ml import MLPrediction, ModelVersion
-from app.models.payments import PaymentAttempt
 from app.schemas.action import ActionOut, ActionOutcomeOut, ActionRequestIn, ActionResult
 from app.schemas.case import CaseEventOut, CaseSummaryOut
 from app.schemas.ml import FeatureContributionOut, ModelVersionOut, PredictionOut
 from app.schemas.payment_attempt import PaymentAttemptOut
 from app.schemas.policy import ActionEligibilityOut, PolicyDecisionOut
-from app.services import action_service, audit_service, policy_service, prediction_service
+from app.services import action_service, audit_service, case_query, policy_service, prediction_service
 from app.services.action_service import ActionNotEligible
 
 router = APIRouter(prefix="/cases", tags=["cases"])
@@ -27,15 +25,6 @@ def _get_case_or_404(db: Session, case_id: int) -> Case:
     if case is None:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
     return case
-
-
-def _latest_diagnosed_attempt(db: Session, case_id: int) -> PaymentAttempt | None:
-    return (
-        db.query(PaymentAttempt)
-        .filter(PaymentAttempt.case_id == case_id, PaymentAttempt.decline_code.isnot(None))
-        .order_by(PaymentAttempt.attempted_at.desc())
-        .first()
-    )
 
 
 @router.get("", response_model=list[CaseSummaryOut])
@@ -69,7 +58,7 @@ def get_case_eligibility(case_id: int, db: Session = Depends(get_db)) -> PolicyD
     """A fresh policy read against current state: which actions are allowed
     or prohibited right now, and why — re-evaluated, not cached."""
     case = _get_case_or_404(db, case_id)
-    latest_attempt = _latest_diagnosed_attempt(db, case_id)
+    latest_attempt = case_query.latest_diagnosed_attempt(db, case_id)
     if latest_attempt is None or latest_attempt.decline_code is None:
         raise HTTPException(
             status_code=409, detail="This case has no diagnosed decline to evaluate eligibility for."
@@ -98,7 +87,7 @@ def _prediction_to_out(db: Session, case: Case, ml_prediction: MLPrediction) -> 
     settings = get_settings()
 
     expected_values: dict[str, int] = {}
-    latest_attempt = _latest_diagnosed_attempt(db, case.id)
+    latest_attempt = case_query.latest_diagnosed_attempt(db, case.id)
     if latest_attempt is not None and latest_attempt.decline_code is not None and case.status == CaseStatus.OPEN:
         diag = diagnose(latest_attempt.decline_code)
         policy_result = policy_service.evaluate_for_case(db, case=case, diagnosis=diag)
@@ -146,7 +135,7 @@ def refresh_case_prediction(case_id: int, db: Session = Depends(get_db)) -> Pred
     executes anything; purely advisory, exactly like the automatic PREDICT
     step in the ingestion pipeline."""
     case = _get_case_or_404(db, case_id)
-    latest_attempt = _latest_diagnosed_attempt(db, case_id)
+    latest_attempt = case_query.latest_diagnosed_attempt(db, case_id)
     if latest_attempt is None or latest_attempt.decline_code is None:
         raise HTTPException(status_code=409, detail="This case has no diagnosed decline to score.")
 
@@ -177,9 +166,7 @@ def refresh_case_prediction(case_id: int, db: Session = Depends(get_db)) -> Pred
 def list_case_actions(case_id: int, db: Session = Depends(get_db)) -> list[ActionOut]:
     """Has this case already been acted upon? The full action history."""
     _get_case_or_404(db, case_id)
-    actions = (
-        db.query(Action).filter(Action.case_id == case_id).order_by(Action.requested_at.asc()).all()
-    )
+    actions = case_query.list_actions_for_case(db, case_id)
     return [ActionOut.model_validate(a) for a in actions]
 
 

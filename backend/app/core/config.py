@@ -50,6 +50,31 @@ class Settings(BaseSettings):
         "escalate": 500,
     }
 
+    # --- Agent (see app/agent/, app/services/agent_service.py) ---
+    # Never hardcode a key: this reads from the ANTHROPIC_API_KEY env var
+    # (or backend/.env). Empty/unset -> the deterministic engine is used
+    # automatically, and the system is fully functional without it.
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-4-5"
+    anthropic_api_base: str = "https://api.anthropic.com"
+    anthropic_timeout_seconds: float = 30.0
+
+    # Hard cap on tool-call turns within a single LLM decision — the loop
+    # is forced to a final decision (or fails over to the deterministic
+    # engine) once this is reached. Never unbounded.
+    max_agent_tool_calls: int = 6
+    # Hard cap on DECIDE calls per case — once reached, further automated
+    # decisions are refused and the case must be escalated by a human.
+    max_agent_decisions_per_case: int = 5
+
+    # Deterministic thresholds that force requires_human_review=True
+    # regardless of what a provider (LLM or deterministic) itself decided —
+    # a provider's own judgment is never sufficient authorization on its
+    # own for these. Illustrative configuration, not measured.
+    human_review_amount_threshold_cents: int = 10000
+    human_review_confidence_floor: float = 0.40
+    human_review_repeated_failure_threshold: int = 2
+
 
 @lru_cache
 def get_settings() -> Settings:

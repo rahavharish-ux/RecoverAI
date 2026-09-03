@@ -12,23 +12,21 @@ remains entirely deterministic and entirely unaware this module exists.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
 
 import pandas as pd
 from sqlalchemy.orm import Session
 
 from app.core.timeutil import as_utc
 from app.domain.decline_taxonomy import Diagnosis
-from app.domain.enums import ActionStatus, AttemptStatus
 from app.ml import model_registry
 from app.ml.explain import FeatureContribution, explain_prediction
 from app.ml.features import RawFeatureInputs, compute_features
-from app.ml.schema import ALL_FEATURES, CATEGORICAL_FEATURES, NO_PRIOR_ATTEMPT_HOURS_SENTINEL, confidence_band
-from app.models.actions import Action
+from app.ml.schema import ALL_FEATURES, CATEGORICAL_FEATURES, confidence_band
 from app.models.cases import Case
 from app.models.core import Customer, Invoice, PaymentMethod
 from app.models.ml import MLPrediction, ModelVersion
 from app.models.payments import PaymentAttempt
+from app.services import case_query
 
 # Phase 1's simulator doesn't yet differentiate simulated gateways per
 # attempt (see app/integrations/payment_gateway.py) — the trained model
@@ -45,41 +43,6 @@ class PredictionResult:
     contributions: list[FeatureContribution]
 
 
-def _prior_attempt_stats(db: Session, customer_id: int, before: datetime) -> tuple[int, int, float | None]:
-    rows = (
-        db.query(PaymentAttempt)
-        .join(Invoice, PaymentAttempt.invoice_id == Invoice.id)
-        .filter(Invoice.customer_id == customer_id, PaymentAttempt.attempted_at < before)
-        .all()
-    )
-    successes = sum(1 for a in rows if a.status == AttemptStatus.SUCCEEDED)
-    failures = sum(1 for a in rows if a.status == AttemptStatus.FAILED)
-    avg_amount = (sum(a.amount_cents for a in rows) / len(rows)) if rows else None
-    return successes, failures, avg_amount
-
-
-def _prior_recovery_action_count(db: Session, customer_id: int, before: datetime) -> int:
-    return (
-        db.query(Action)
-        .join(Case, Action.case_id == Case.id)
-        .filter(Case.customer_id == customer_id, Action.requested_at < before, Action.status == ActionStatus.EXECUTED)
-        .count()
-    )
-
-
-def _case_retry_context(db: Session, case_id: int, before: datetime) -> tuple[int, float]:
-    prior = (
-        db.query(PaymentAttempt)
-        .filter(PaymentAttempt.case_id == case_id, PaymentAttempt.attempted_at < before)
-        .order_by(PaymentAttempt.attempted_at.desc())
-        .all()
-    )
-    if not prior:
-        return 0, NO_PRIOR_ATTEMPT_HOURS_SENTINEL
-    hours_since_last = max(0.0, (before - as_utc(prior[0].attempted_at)).total_seconds() / 3600.0)
-    return len(prior), hours_since_last
-
-
 def predict_recovery_probability(
     db: Session, *, case: Case, attempt: PaymentAttempt, diagnosis: Diagnosis
 ) -> PredictionResult | None:
@@ -94,9 +57,9 @@ def predict_recovery_probability(
         return None
 
     now = as_utc(attempt.attempted_at)
-    prior_success, prior_fail, avg_amount = _prior_attempt_stats(db, customer.id, now)
-    prior_recovery_actions = _prior_recovery_action_count(db, customer.id, now)
-    retry_number, hours_since_last = _case_retry_context(db, case.id, now)
+    prior_success, prior_fail, avg_amount = case_query.prior_attempt_stats(db, customer.id, now)
+    prior_recovery_actions = case_query.prior_recovery_action_count(db, customer.id, now)
+    retry_number, hours_since_last = case_query.case_retry_context(db, case.id, now)
 
     method_created = as_utc(payment_method.created_at)
     customer_created = as_utc(customer.created_at)

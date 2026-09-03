@@ -72,9 +72,28 @@ class CaseEventType(str, Enum):
     DIAGNOSED = "diagnosed"
     PREDICTED = "predicted"
     POLICY_EVALUATED = "policy_evaluated"
+    AGENT_DECIDED = "agent_decided"
+    AGENT_DECISION_REVIEWED = "agent_decision_reviewed"
     ACTION_REQUESTED = "action_requested"
     ACTION_REJECTED = "action_rejected"
     ACTION_EXECUTED = "action_executed"
     ACTION_OUTCOME_RECORDED = "action_outcome_recorded"
     CASE_ESCALATED = "case_escalated"
     CASE_RESOLVED = "case_resolved"
+
+
+class AgentMode(str, Enum):
+    """Never allowed to be conflated in the UI or audit trail — a decision
+    made by the deterministic engine must never read as, or be mistaken
+    for, an LLM's output."""
+
+    DETERMINISTIC = "deterministic"
+    LLM = "llm"
+
+
+class DecisionStatus(str, Enum):
+    AUTO_APPROVED = "auto_approved"
+    HUMAN_REVIEW = "human_review"
+    EXECUTED = "executed"
+    REJECTED = "rejected"
+    ESCALATED = "escalated"

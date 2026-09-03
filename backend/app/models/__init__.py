@@ -2,6 +2,7 @@
 create_all() is called anywhere (see db/session.py)."""
 
 from app.models.actions import Action, ActionOutcome
+from app.models.agent import AgentDecision, AgentToolCall
 from app.models.base import Base
 from app.models.cases import Case, CaseEvent, PolicyDecision
 from app.models.core import Customer, Invoice, PaymentMethod, Subscription
@@ -22,4 +23,6 @@ __all__ = [
     "ActionOutcome",
     "ModelVersion",
     "MLPrediction",
+    "AgentDecision",
+    "AgentToolCall",
 ]

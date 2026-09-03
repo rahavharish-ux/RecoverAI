@@ -9,18 +9,29 @@ Agentic Revenue Recovery & Payment Failure Intelligence Platform.
 
 ## Status
 
-**Phase 1 (deterministic core) and Phase 2 (ML intelligence) are
-implemented.** The pipeline is Detect → Diagnose → Predict → Decide → Act →
-Measure → Audit. Detect/Diagnose/Decide/Act/Audit are entirely
-deterministic (Phase 1) — a fixed decline-code taxonomy, a rule-based
-policy engine (retry caps, cooldowns, fraud/hard-decline gates, a kill
-switch), idempotent action execution against a clearly-labeled simulated
-gateway, and an append-only audit trail. Predict (Phase 2) adds a
-calibrated recovery-probability model, trained and honestly evaluated on a
-synthetic dataset, that is purely advisory — it is scored and logged
-alongside every diagnosed failure but never seen by, or able to influence,
-the policy engine. See the approved architecture blueprint for the full
-design and the phased roadmap beyond this.
+**Phases 1–3 are implemented.** The pipeline is Detect → Diagnose → Predict
+→ Decide → Act → Measure → Learn → Audit. Detect/Diagnose/Act/Audit are
+entirely deterministic (Phase 1) — a fixed decline-code taxonomy, a
+rule-based policy engine (retry caps, cooldowns, fraud/hard-decline gates,
+a kill switch), idempotent action execution against a clearly-labeled
+simulated gateway, and an append-only audit trail. Predict (Phase 2) adds a
+calibrated recovery-probability model, honestly evaluated on synthetic
+data, that is purely advisory. Decide (Phase 3) adds an agent — a
+Deterministic Decision Engine by default, or an LLM-backed one
+(`ANTHROPIC_API_KEY`) — that reasons and selects only from the set the
+policy engine already allowed; every write is independently re-validated
+and executed through the unmodified Phase 1 action service, never
+authorized by the agent's own reasoning. See the approved architecture
+blueprint for the full design and the phased roadmap beyond this.
+
+### Running the agent
+
+No setup needed — the Deterministic Decision Engine works out of the box.
+To use the LLM-backed agent instead, set `ANTHROPIC_API_KEY` in
+`backend/.env`; if it's unset, empty, or the API call fails for any reason,
+the system automatically falls back to the deterministic engine and keeps
+working. Which one ran is always visible on the decision (`agent_mode`,
+`mode_label`) — never conflated.
 
 ### Training the model
 
@@ -79,6 +90,12 @@ The frontend dev server proxies `/api` requests to `http://localhost:8000`.
 | `GET /api/v1/policy` | Current policy version and thresholds |
 | `GET /api/v1/ml/model` | Active model's metadata (algorithm, version, dataset/feature schema versions) |
 | `GET /api/v1/ml/evaluation` | The active model's full, honestly-measured evaluation report |
+| `POST /api/v1/cases/{id}/agent/decide` | DECIDE: the agent reasons over the policy-allowed action set and selects one |
+| `POST /api/v1/cases/{id}/agent/execute` | EXECUTE: re-validates from scratch, then acts through the Phase 1 action service |
+| `POST /api/v1/cases/{id}/agent/decisions/{decision_id}/approve` | Human approves a HUMAN_REVIEW decision — triggers execution |
+| `POST /api/v1/cases/{id}/agent/decisions/{decision_id}/reject` | Human rejects a HUMAN_REVIEW decision — nothing executes |
+| `GET /api/v1/cases/{id}/agent/trace` | Every decision for a case, each with its own tool-call log |
+| `GET /api/v1/cases/{id}/decision` | The most recent agent decision for a case |
 
 ## Database
 
