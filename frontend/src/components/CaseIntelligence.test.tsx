@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CaseIntelligence } from './CaseIntelligence'
 import type { AgentDecision, CaseEvent, CaseSummary } from '../types/case'
+import type { PolicyConfig } from '../api/policy'
 
 const SAMPLE_CASE: CaseSummary = {
   id: 1,
@@ -58,6 +59,15 @@ const SAMPLE_DECISION: AgentDecision = {
   decided_at: '2026-09-04T10:00:04Z',
 }
 
+const SAMPLE_POLICY: PolicyConfig = {
+  policy_version: 'policy-v1',
+  max_retry_attempts: 3,
+  retry_cooldown_hours: 24,
+  automated_actions_enabled: true,
+  action_costs_cents: { retry_payment: 25, request_method_update: 10, escalate: 500 },
+  note: 'illustrative sandbox configuration',
+}
+
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
 }
@@ -70,6 +80,7 @@ function installMockFetch(): void {
       if (url.endsWith('/api/v1/cases/1/events')) return jsonResponse(SAMPLE_EVENTS)
       if (url.endsWith('/api/v1/cases/1/decision')) return jsonResponse(SAMPLE_DECISION)
       if (url.endsWith('/api/v1/cases/1/actions')) return jsonResponse([])
+      if (url.endsWith('/api/v1/policy')) return jsonResponse(SAMPLE_POLICY)
       if (url.endsWith('/api/v1/cases/1')) return jsonResponse(SAMPLE_CASE)
       return new Response(null, { status: 404 })
     }),
@@ -93,19 +104,21 @@ describe('CaseIntelligence', () => {
 
   it('renders the failure reason from the diagnosis event', async () => {
     render(<CaseIntelligence />)
-    await waitFor(() => expect(screen.getByText('Failure: processor error')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Failure: Processor Error')).toBeInTheDocument())
   })
 
   it('renders the recovery probability and confidence band', async () => {
     render(<CaseIntelligence />)
-    await waitFor(() => expect(screen.getByText('78%')).toBeInTheDocument())
+    // 78% legitimately appears twice: the hero prediction number and the
+    // "Why this action?" panel's own probability field.
+    await waitFor(() => expect(screen.getAllByText('78%').length).toBeGreaterThanOrEqual(2))
     expect(screen.getByText('high confidence')).toBeInTheDocument()
   })
 
   it('highlights the agent-selected action among the available ones', async () => {
     render(<CaseIntelligence />)
-    await waitFor(() => expect(screen.getByText('retry payment')).toBeInTheDocument())
-    expect(screen.getByText('escalate')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Retry Payment')).toBeInTheDocument())
+    expect(screen.getByText('Escalate')).toBeInTheDocument()
   })
 
   it('renders the agent reasoning and mode label', async () => {
@@ -124,6 +137,26 @@ describe('CaseIntelligence', () => {
     await waitFor(() => expect(screen.getByText('Diagnosed')).toBeInTheDocument())
     expect(screen.getByText('Predicted')).toBeInTheDocument()
     expect(screen.getByText('Policy Checked')).toBeInTheDocument()
+  })
+
+  it('renders the pipeline stepper with distinct stage labels', async () => {
+    render(<CaseIntelligence />)
+    await waitFor(() => expect(screen.getByText('Diagnosis')).toBeInTheDocument())
+    expect(screen.getByText('ML Probability')).toBeInTheDocument()
+    expect(screen.getByText('Policy Constraints')).toBeInTheDocument()
+    // "Audit" appears both as a stepper stage and as the timeline card's
+    // title — both are real, expected occurrences of the same word.
+    expect(screen.getAllByText('Audit').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('renders the "Why this action?" structured panel with expected value and cost', async () => {
+    render(<CaseIntelligence />)
+    await waitFor(() => expect(screen.getByText('Why this action?')).toBeInTheDocument())
+    // $9,749.00 (retry_payment's expected value) legitimately appears
+    // twice: once in the Available Actions list, once in this panel.
+    expect(screen.getAllByText('$9,749.00').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText('$0.25')).toBeInTheDocument() // action cost for retry_payment
+    expect(screen.getByText('Auto-approved')).toBeInTheDocument()
   })
 
   it('disables Execute until a decision is auto-approved and enabled here', async () => {

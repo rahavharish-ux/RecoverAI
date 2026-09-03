@@ -29,6 +29,7 @@ class PolicyConfigOut(BaseModel):
     max_retry_attempts: int
     retry_cooldown_hours: int
     automated_actions_enabled: bool
+    action_costs_cents: dict[str, int]
     note: str = (
         "Retry success rates used by the sandbox simulator are illustrative "
         "configuration values, not measured or validated recovery rates."

@@ -17,4 +17,5 @@ def get_policy_config() -> PolicyConfigOut:
         max_retry_attempts=settings.max_retry_attempts,
         retry_cooldown_hours=settings.retry_cooldown_hours,
         automated_actions_enabled=settings.automated_actions_enabled,
+        action_costs_cents=settings.action_costs_cents,
     )

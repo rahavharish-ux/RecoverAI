@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import agent, cases, health, ml, payment_attempts, policy
+from app.api.routes import agent, cases, dashboard, health, ml, payment_attempts, policy
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -39,3 +39,4 @@ app.include_router(cases.router, prefix=settings.api_v1_prefix)
 app.include_router(policy.router, prefix=settings.api_v1_prefix)
 app.include_router(ml.router, prefix=settings.api_v1_prefix)
 app.include_router(agent.router, prefix=settings.api_v1_prefix)
+app.include_router(dashboard.router, prefix=settings.api_v1_prefix)

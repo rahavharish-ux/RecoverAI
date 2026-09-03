@@ -54,3 +54,8 @@ def test_policy_config_endpoint_reports_current_thresholds(client):
     assert body["max_retry_attempts"] == 3
     assert body["retry_cooldown_hours"] == 24
     assert body["automated_actions_enabled"] is True
+
+
+def test_policy_config_endpoint_reports_action_costs(client):
+    body = client.get("/api/v1/policy").json()
+    assert body["action_costs_cents"] == {"retry_payment": 25, "request_method_update": 10, "escalate": 500}
