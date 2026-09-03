@@ -10,6 +10,7 @@ backend/__pycache__/
 backend/**/__pycache__/
 backend/.pytest_cache/
 backend/*.egg-info/
+backend/*.db
 
 # Env files
 .env
