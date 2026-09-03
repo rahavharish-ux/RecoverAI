@@ -1,9 +1,11 @@
-"""Detect + Diagnose (+ Decide, for failures) for one payment attempt —
-whether it arrived as an external gateway event or was generated internally
-by executing a retry action. Both paths funnel through
-`record_payment_attempt` so a retry's result is diagnosed, policy-evaluated,
-and audited exactly like any attempt a real gateway would report."""
+"""Detect + Diagnose + Predict (+ Decide, for failures) for one payment
+attempt — whether it arrived as an external gateway event or was generated
+internally by executing a retry action. Both paths funnel through
+`record_payment_attempt` so a retry's result is diagnosed, scored, policy-
+evaluated, and audited exactly like any attempt a real gateway would
+report."""
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -13,8 +15,11 @@ from app.domain.decline_taxonomy import Diagnosis, diagnose
 from app.domain.enums import AttemptSource, AttemptStatus, CaseEventType, CaseStatus, DeclineCode
 from app.models.cases import Case, PolicyDecision
 from app.models.core import Invoice
+from app.models.ml import MLPrediction
 from app.models.payments import PaymentAttempt
-from app.services import audit_service, policy_service
+from app.services import audit_service, policy_service, prediction_service
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -22,6 +27,7 @@ class IngestResult:
     payment_attempt: PaymentAttempt
     case: Case
     diagnosis: Diagnosis | None
+    ml_prediction: MLPrediction | None
     policy_decision: PolicyDecision | None
     deduplicated: bool
 
@@ -104,7 +110,7 @@ def record_payment_attempt(
                 .order_by(PolicyDecision.evaluated_at.desc())
                 .first()
             )
-            return IngestResult(existing, case, diag, latest_decision, deduplicated=True)
+            return IngestResult(existing, case, diag, None, latest_decision, deduplicated=True)
 
     is_success = decline_code is None
     status = AttemptStatus.SUCCEEDED if is_success else AttemptStatus.FAILED
@@ -144,6 +150,7 @@ def record_payment_attempt(
     )
 
     diag: Diagnosis | None = None
+    ml_prediction: MLPrediction | None = None
     policy_row: PolicyDecision | None = None
 
     if is_success:
@@ -163,6 +170,39 @@ def record_payment_attempt(
             payment_attempt_id=attempt.id,
         )
 
+        # PREDICT: advisory only. If no model is trained yet, or anything
+        # about scoring fails, this silently no-ops — Decide below runs off
+        # `diag` alone and has no idea whether a prediction exists.
+        try:
+            prediction_result = prediction_service.predict_recovery_probability(
+                db, case=case, attempt=attempt, diagnosis=diag
+            )
+        except Exception:
+            logger.exception(
+                "PREDICT stage failed for case_id=%s payment_attempt_id=%s — continuing without a prediction.",
+                case.id,
+                attempt.id,
+            )
+            prediction_result = None
+
+        if prediction_result is not None:
+            ml_prediction = prediction_result.ml_prediction
+            audit_service.write_event(
+                db,
+                case_id=case.id,
+                event_type=CaseEventType.PREDICTED,
+                summary=f"Estimated retry-success probability: {ml_prediction.recovery_probability:.0%} "
+                f"({ml_prediction.confidence_band} confidence).",
+                details={
+                    "model_version_id": prediction_result.model_version.id,
+                    "algorithm": prediction_result.model_version.algorithm,
+                    "recovery_probability": ml_prediction.recovery_probability,
+                    "confidence_band": ml_prediction.confidence_band,
+                },
+                payment_attempt_id=attempt.id,
+                ml_prediction_id=ml_prediction.id,
+            )
+
         policy_result = policy_service.evaluate_for_case(db, case=case, diagnosis=diag, now=now)
         policy_row = policy_service.persist_decision(
             db, case_id=case.id, payment_attempt_id=attempt.id, result=policy_result
@@ -181,4 +221,4 @@ def record_payment_attempt(
     db.commit()
     db.refresh(case)
     db.refresh(attempt)
-    return IngestResult(attempt, case, diag, policy_row, deduplicated=False)
+    return IngestResult(attempt, case, diag, ml_prediction, policy_row, deduplicated=False)

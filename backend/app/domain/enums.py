@@ -70,6 +70,7 @@ class CaseEventType(str, Enum):
     CASE_OPENED = "case_opened"
     PAYMENT_ATTEMPT_RECORDED = "payment_attempt_recorded"
     DIAGNOSED = "diagnosed"
+    PREDICTED = "predicted"
     POLICY_EVALUATED = "policy_evaluated"
     ACTION_REQUESTED = "action_requested"
     ACTION_REJECTED = "action_rejected"

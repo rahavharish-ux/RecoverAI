@@ -11,6 +11,7 @@ backend/**/__pycache__/
 backend/.pytest_cache/
 backend/*.egg-info/
 backend/*.db
+backend/ml_artifacts/
 
 # Env files
 .env

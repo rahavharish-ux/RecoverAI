@@ -45,6 +45,7 @@ class CaseEvent(Base):
     summary: Mapped[str] = mapped_column(String(300))
     details: Mapped[dict] = mapped_column(JSON, default=dict)
     payment_attempt_id: Mapped[int | None] = mapped_column(ForeignKey("payment_attempts.id"), nullable=True)
+    ml_prediction_id: Mapped[int | None] = mapped_column(ForeignKey("ml_predictions.id"), nullable=True)
     policy_decision_id: Mapped[int | None] = mapped_column(ForeignKey("policy_decisions.id"), nullable=True)
     action_id: Mapped[int | None] = mapped_column(ForeignKey("actions.id"), nullable=True)
     action_outcome_id: Mapped[int | None] = mapped_column(ForeignKey("action_outcomes.id"), nullable=True)

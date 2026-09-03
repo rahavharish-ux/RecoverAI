@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.enums import ActionType, AttemptSource, AttemptStatus, DeclineClass, DeclineCode
 from app.schemas.case import CaseSummaryOut
+from app.schemas.ml import PredictionOut
 from app.schemas.policy import PolicyDecisionOut
 
 
@@ -52,6 +53,7 @@ class PaymentAttemptIngestResult(BaseModel):
     payment_attempt: PaymentAttemptOut
     case: CaseSummaryOut
     diagnosis: DiagnosisOut | None
+    prediction: PredictionOut | None = None
     policy_decision: PolicyDecisionOut | None
     deduplicated: bool = Field(
         default=False,

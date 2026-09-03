@@ -36,6 +36,20 @@ class Settings(BaseSettings):
     }
     simulator_random_seed: int | None = None
 
+    # --- ML (see app/ml/, app/services/prediction_service.py) ---
+    # The directory trained model artifacts are loaded from (see
+    # training/train.py, which writes here).
+    ml_artifact_dir: str = "./ml_artifacts"
+
+    # Deterministic, configured action costs (simulated processor/ops cost
+    # in cents) — expected-value ranking uses these; the model never
+    # invents a cost of its own. Illustrative, not measured.
+    action_costs_cents: dict[str, int] = {
+        "retry_payment": 25,
+        "request_method_update": 10,
+        "escalate": 500,
+    }
+
 
 @lru_cache
 def get_settings() -> Settings:

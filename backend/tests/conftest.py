@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
+import joblib
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -10,8 +12,10 @@ from app.api.deps import get_payment_gateway
 from app.db.session import get_db
 from app.integrations.payment_gateway import GatewayResult, PaymentGatewayPort
 from app.main import app
+from app.ml.schema import FEATURE_SCHEMA_VERSION
 from app.models import Base
 from app.models.core import Customer, Invoice, PaymentMethod, Subscription
+from app.models.ml import ModelVersion
 
 
 class FixedGateway(PaymentGatewayPort):
@@ -61,6 +65,68 @@ def client(session_factory):
     yield test_client
 
     app.dependency_overrides.clear()
+
+
+class StubPipeline:
+    """A trivial stand-in for a trained pipeline, used by the ML API/service
+    tests so they exercise the prediction_service <-> model_registry
+    integration without paying for a real model fit — training's own
+    correctness is covered separately (tests/integration/test_ml_training_pipeline.py)."""
+
+    def predict_proba(self, X):
+        probs = []
+        for _, row in X.iterrows():
+            if row.get("fraud_signal", 0) == 1:
+                p = 0.02
+            elif row.get("retry_eligible", 0) == 0:
+                p = 0.05
+            else:
+                p = 0.55
+            probs.append([1 - p, p])
+        return np.array(probs)
+
+
+@pytest.fixture()
+def stub_active_model(session_factory, tmp_path) -> int:
+    """Registers a fake-but-structurally-valid active model in the test DB
+    and returns its model_version_id."""
+    explanation = {
+        "kind": "importance",
+        "feature_names": ["num__customer_prior_recovery_rate", "cat__decline_code_card_declined"],
+        "weights": [0.42, 0.15],
+        "numeric_feature_medians": {"customer_prior_recovery_rate": 0.5},
+    }
+    artifact_path = tmp_path / "stub_model.joblib"
+    joblib.dump(
+        {
+            "calibrated_pipeline": StubPipeline(),
+            "algorithm": "stub",
+            "operating_threshold": 0.3,
+            "explanation": explanation,
+        },
+        artifact_path,
+    )
+
+    db = session_factory()
+    try:
+        row = ModelVersion(
+            model_name="recovery_probability",
+            algorithm="stub",
+            version="v-test",
+            dataset_version="synthetic-v1-seed1-cust10",
+            feature_schema_version=FEATURE_SCHEMA_VERSION,
+            is_calibrated=True,
+            operating_threshold=0.3,
+            metrics={"note": "stub metrics for testing", "split": {"train_n": 10, "val_n": 2, "test_n": 2}},
+            artifact_path=str(artifact_path),
+            is_active=True,
+        )
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        return row.id
+    finally:
+        db.close()
 
 
 @pytest.fixture()

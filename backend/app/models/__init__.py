@@ -5,6 +5,7 @@ from app.models.actions import Action, ActionOutcome
 from app.models.base import Base
 from app.models.cases import Case, CaseEvent, PolicyDecision
 from app.models.core import Customer, Invoice, PaymentMethod, Subscription
+from app.models.ml import MLPrediction, ModelVersion
 from app.models.payments import PaymentAttempt
 
 __all__ = [
@@ -19,4 +20,6 @@ __all__ = [
     "PolicyDecision",
     "Action",
     "ActionOutcome",
+    "ModelVersion",
+    "MLPrediction",
 ]

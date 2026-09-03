@@ -15,10 +15,18 @@ from app.models import Base
 from app.models.core import Customer, Invoice, PaymentMethod, Subscription
 
 DEMO_CUSTOMERS = [
-    {"name": "Priya Raman", "email": "priya@example.com", "plan_tier": "growth", "amount_cents": 2900},
-    {"name": "Daniel Osei", "email": "daniel@example.com", "plan_tier": "standard", "amount_cents": 1900},
-    {"name": "Mei Lin Tan", "email": "meilin@example.com", "plan_tier": "enterprise", "amount_cents": 19900},
-    {"name": "Carlos Rivas", "email": "carlos@example.com", "plan_tier": "standard", "amount_cents": 4900},
+    # tenure_days / method_age_days backdate the customer and card so
+    # PREDICT-stage features (customer_tenure_days, payment_method_age_days)
+    # read realistically instead of ~0 — matching the range the training
+    # data was generated over (see training/synthetic_data.py).
+    {"name": "Priya Raman", "email": "priya@example.com", "plan_tier": "growth", "amount_cents": 2900,
+     "tenure_days": 620, "method_age_days": 540},
+    {"name": "Daniel Osei", "email": "daniel@example.com", "plan_tier": "standard", "amount_cents": 1900,
+     "tenure_days": 45, "method_age_days": 45},
+    {"name": "Mei Lin Tan", "email": "meilin@example.com", "plan_tier": "enterprise", "amount_cents": 19900,
+     "tenure_days": 900, "method_age_days": 880},
+    {"name": "Carlos Rivas", "email": "carlos@example.com", "plan_tier": "standard", "amount_cents": 4900,
+     "tenure_days": 210, "method_age_days": 30},
 ]
 
 
@@ -32,7 +40,12 @@ def seed() -> None:
 
         now = datetime.now(timezone.utc)
         for i, c in enumerate(DEMO_CUSTOMERS):
-            customer = Customer(name=c["name"], email=c["email"], plan_tier=c["plan_tier"])
+            customer = Customer(
+                name=c["name"],
+                email=c["email"],
+                plan_tier=c["plan_tier"],
+                created_at=now - timedelta(days=c["tenure_days"]),
+            )
             db.add(customer)
             db.flush()
 
@@ -42,6 +55,7 @@ def seed() -> None:
                 last4=f"{4242 + i:04d}"[-4:],
                 exp_month=((i * 3) % 12) + 1,
                 exp_year=now.year if i == 2 else now.year + 2,  # one card near/at expiry
+                created_at=now - timedelta(days=c["method_age_days"]),
             )
             db.add(method)
             db.flush()
@@ -57,6 +71,7 @@ def seed() -> None:
                 currency="usd",
                 due_date=now + timedelta(days=1),
                 status="open",
+                created_at=now - timedelta(days=2),
             )
             db.add(invoice)
 

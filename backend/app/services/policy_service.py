@@ -8,6 +8,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.timeutil import as_utc
 from app.domain.decline_taxonomy import Diagnosis
 from app.domain.enums import ActionStatus, ActionType
 from app.domain.policy import PolicyDecisionResult, PolicyInput, PolicySettings
@@ -23,17 +24,6 @@ def _policy_settings() -> PolicySettings:
         retry_cooldown_hours=settings.retry_cooldown_hours,
         automated_actions_enabled=settings.automated_actions_enabled,
     )
-
-
-def _as_utc(value: datetime | None) -> datetime | None:
-    """SQLite has no timestamp-with-timezone type, so DateTime(timezone=True)
-    columns round-trip as naive datetimes on it (Postgres preserves tzinfo
-    natively). Every value this app writes is UTC by convention, so a naive
-    read is normalized back to an aware one here, at the single point
-    that compares a DB-read timestamp against `datetime.now(timezone.utc)`."""
-    if value is not None and value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value
 
 
 def _executed_retry_stats(db: Session, case_id: int) -> tuple[int, datetime | None]:
@@ -55,7 +45,7 @@ def _executed_retry_stats(db: Session, case_id: int) -> tuple[int, datetime | No
         )
         .scalar()
     )
-    return count, _as_utc(last_retry_at)
+    return count, as_utc(last_retry_at)
 
 
 def _in_flight_map(db: Session, case_id: int) -> dict[ActionType, bool]:

@@ -17,7 +17,7 @@ def ingest_payment_attempt(
 ) -> PaymentAttemptIngestResult:
     """Detect: record a payment attempt exactly as a gateway webhook would
     report it. Omit `decline_code` for a success; include it for a failure.
-    Runs Diagnose and Decide (policy evaluation) inline for failures."""
+    Runs Diagnose, Predict (best-effort), and Decide inline for failures."""
     invoice = db.get(Invoice, payload.invoice_id)
     if invoice is None:
         raise HTTPException(status_code=404, detail=f"Invoice {payload.invoice_id} not found.")
@@ -33,4 +33,4 @@ def ingest_payment_attempt(
         external_event_id=payload.external_event_id,
         attempted_at=payload.attempted_at,
     )
-    return ingest_result_to_schema(result)
+    return ingest_result_to_schema(db, result)
