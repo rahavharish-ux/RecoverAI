@@ -116,6 +116,146 @@ only interface to case data — it never queries the database directly.
 - **Hard caps** — a per-decision tool-call limit and a per-case decision
   limit make an infinite agent loop structurally impossible.
 
+## Security & Safety
+
+RecoverAI applies defense-in-depth security controls appropriate for a
+publicly reachable competition sandbox — validated inputs, unconditional
+server-side re-validation of every write, scoped rate limiting, and a
+dedicated adversarial test suite. *Security hardening was performed for
+the public competition repository, but this project is still a
+sandbox/demo and has not undergone a formal production security
+assessment.*
+
+### Agent safety
+
+- The agent never queries the database directly — every read and write
+  goes through named, Pydantic-schema-validated tools
+  (`backend/app/agent/tools.py`); it has no other interface to case data.
+- Agent tool access is explicitly allowlisted: the LLM-backed provider
+  only offers its own read-only tool set in each call, and any tool name
+  a response names outside that set — including the two non-financial
+  write tools that exist in the shared tool registry but were never
+  offered — is rejected server-side, never executed.
+- Every recovery action is independently re-validated server-side at
+  execution time. The agent's own decision is never trusted as
+  authorization: `EXECUTE` re-fetches current case state, re-runs policy,
+  and re-checks idempotency through the same `action_service.request_action`
+  a direct API call goes through — proven by a test that tampers an
+  `AgentDecision.selected_action` directly in the database and confirms
+  execution still rejects it.
+- The deterministic policy engine (`backend/app/domain/policy.py`)
+  remains the sole authority on what's allowed — the agent can only
+  select from the policy-approved action set, never expand it.
+- HITL (human-in-the-loop) protections cannot be bypassed through agent
+  reasoning: deterministic risk flags (fraud, high value, low confidence,
+  repeated failures) can only strengthen a provider's own human-review
+  requirement, never weaken it.
+- Retry limits, cooldowns, and idempotency are enforced server-side,
+  unconditionally, for every caller — not only the agent path.
+- Hard caps bound both a single decision's tool-call turns and the number
+  of automated decisions allowed per case, making an unbounded agent loop
+  structurally impossible.
+
+### Recovery action protection
+
+Direct API callers cannot simply skip the UI to perform a protected
+retry. The direct action endpoint (`POST /cases/{id}/actions`) applies
+the same high-value-transaction and low-recovery-confidence human-review
+gates the agent's own decision-making applies, before a retry is allowed
+to execute directly — a caller cannot obtain an unreviewed automated
+retry on a case like that simply by bypassing the agent. Repeated-attempt
+abuse on the same case is independently bounded by the pre-existing,
+unconditional retry-limit and cooldown policy rules, enforced for every
+caller. Fraud and hard-decline cases are blocked at the deterministic
+policy layer itself, so they were never bypassable this way at all.
+
+A case that has already been through human review and approval continues
+through the normal action execution path unaffected — this protection
+only stands between an *unreviewed* request and the payment gateway.
+
+### API hardening
+
+- Strict request validation with sensible bounds on numeric and string
+  inputs (transaction amounts, correlation IDs, reviewer notes, and more)
+  — malformed or extreme values are rejected before reaching any business
+  logic.
+- Bounded list/query parameters (e.g. `?limit=`) and capped case listings,
+  preventing an unbounded response as sandbox data grows.
+- A request body size limit rejects oversized payloads before they're
+  processed.
+- CORS restricted to the frontend's actual origin and the methods/headers
+  it actually uses, not left wide open.
+- Baseline security headers (`X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`) are set on every response.
+- Configurable trusted-host support, ready to be locked down via
+  environment variable once a deployment hostname is known.
+- Rate limiting on the agent decision/execution and demo-scenario
+  endpoints, so they can't be scripted into unbounded cost or data growth.
+- Errors return generic, structured messages — no stack traces, internal
+  paths, or secrets are ever included in an API response.
+
+### Demo isolation
+
+- Every Demo Center scenario run creates a fresh, fully isolated
+  synthetic customer, invoice, and case — no run can reuse, or be blocked
+  by, another run's state.
+- The one deterministic outcome fixture used to reliably demonstrate a
+  successful recovery (Scenario A) is explicitly scoped to that single
+  Demo Center code path — it is never wired into the production
+  payment-gateway dependency the rest of the system uses.
+- Demo behavior cannot be used as a general production recovery
+  mechanism: the fixture only ever applies inside the Demo Center's own
+  orchestration, never to a case reached any other way.
+- Every demo scenario still runs the real pipeline end to end — ingestion,
+  diagnosis, prediction, policy evaluation, agent decision, execution,
+  measurement, and audit — nothing about a demo run is scripted UI text.
+
+### Secrets & repository hygiene
+
+- All secrets (API keys, database credentials) are read exclusively from
+  environment/configuration (`backend/app/core/config.py`) — never
+  hardcoded.
+- `backend/.env.example` documents required configuration with
+  placeholder values only.
+- `.gitignore` excludes `.env` files, local databases, and build
+  artifacts from version control.
+- The full Git history was reviewed before making this repository public;
+  no API keys, credentials, private keys, or database files were found in
+  any commit.
+
+### Security testing
+
+- A dedicated security regression suite
+  (`backend/tests/integration/test_security_hardening.py`, plus targeted
+  additions to the agent and rate-limiter tests) covers: direct-action
+  human-review bypass attempts (and that legitimate human-approved
+  actions still execute), cross-case (IDOR) access on agent decision
+  endpoints, invalid/malformed/extreme inputs, cooldown and retry-limit
+  protections, agent tool-offer restrictions, and demo-fixture isolation.
+- Backend test suite: 244 tests passing.
+- Frontend test suite: 30 tests passing.
+- TypeScript type-checking: clean.
+- Production build: succeeds.
+
+### Known limitations
+
+- No authentication/authorization layer is implemented yet — this
+  remains a competition sandbox, not a multi-tenant production
+  deployment; every API endpoint is reachable by any caller. See
+  [Known Limitations and Honest Caveats](#known-limitations-and-honest-caveats).
+- Trusted-host restriction is left permissive by default because the
+  final deployment hostname isn't known ahead of time — it's
+  configurable, not enforced out of the box.
+- Rate limiting is in-memory and single-process, appropriate for how this
+  demo runs, not a distributed solution.
+- Dashboard aggregate queries are intentionally not artificially capped —
+  doing so would make the financial aggregates (revenue at risk, funnel,
+  economics) inaccurate rather than just slower.
+- Full persistence of the LLM agent's own exploratory tool calls (during
+  its reasoning loop) is an observability enhancement, not currently
+  implemented — only the fixed context-gathering calls are captured in
+  the stored agent trace today.
+
 ## Demo Scenarios
 
 The **Demo Center** (in the app) runs five scenarios through the real
@@ -238,7 +378,8 @@ Demo Center views here before final submission)*
 - SQLite is the dev/test database; Postgres is supported but not the
   default here.
 - No authentication/authorization layer yet — this is a sandbox, not a
-  multi-tenant product.
+  multi-tenant product. See [Security & Safety](#security--safety) for
+  what is and isn't covered by the security hardening pass.
 - The LLM agent path is implemented and tested against a mocked HTTP
   transport only.
 - `recovery_probability` is retry-specific; risk-flagging still applies
