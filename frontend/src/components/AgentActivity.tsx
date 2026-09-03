@@ -1,6 +1,7 @@
 import { getRecentDecisions } from '../api/dashboard'
 import { useFetch } from '../hooks/useFetch'
 import { formatMoney, formatPercent, titleCase } from '../lib/format'
+import { RISK_FLAG_STYLES, riskFlagTone } from '../lib/theme'
 import { Card } from './ui/Card'
 import { ModeBadge } from './ui/ModeBadge'
 import { EmptyState, ErrorState, LoadingState } from './ui/States'
@@ -19,10 +20,10 @@ export function AgentActivity({ onOpenCase }: { onOpenCase: (caseId: number) => 
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Agent Activity</h1>
-        <p className="text-sm text-slate-500">
-          Every decision the agent has made — diagnosis, prediction, policy, and the resulting choice — across all
-          cases, most recent first.
+        <h1 className="text-2xl font-bold tracking-tight text-ink">Agent Activity</h1>
+        <p className="mt-0.5 text-sm text-muted">
+          Every decision the agent has made — diagnosis, prediction, policy validation, and the resulting choice —
+          across all cases, most recent first. Full tool-call detail for one case lives on its Case Intelligence page.
         </p>
       </header>
 
@@ -31,15 +32,15 @@ export function AgentActivity({ onOpenCase }: { onOpenCase: (caseId: number) => 
         {error && <ErrorState message={error} />}
         {data && data.length === 0 && <EmptyState message="No agent activity yet — try the Demo Center." />}
         {data && data.length > 0 && (
-          <ol className="relative space-y-5 border-l border-slate-800 pl-5">
+          <ol className="relative space-y-5 border-l border-line pl-5">
             {data.map((d) => (
               <li key={d.decision_id} className="relative">
-                <span className="absolute -left-[26px] top-1 h-2.5 w-2.5 rounded-full bg-violet-500 ring-4 ring-slate-950" />
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span className="absolute -left-[25px] top-1 h-2 w-2 rounded-full bg-ai ring-4 ring-surface" />
+                <div className="flex flex-wrap items-center gap-2 text-xs text-faint">
                   <button
                     type="button"
                     onClick={() => onOpenCase(d.case_id)}
-                    className="font-medium text-violet-300 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet-500 rounded"
+                    className="rounded font-medium text-brand hover:underline"
                   >
                     Case #{d.case_id}
                   </button>
@@ -50,7 +51,7 @@ export function AgentActivity({ onOpenCase }: { onOpenCase: (caseId: number) => 
                   <span>·</span>
                   <time dateTime={d.decided_at}>{new Date(d.decided_at).toLocaleString()}</time>
                 </div>
-                <p className="mt-1 text-sm text-slate-200">
+                <p className="mt-1 text-sm text-ink">
                   {d.selected_action ? (
                     <>
                       Selected <span className="font-medium">{titleCase(d.selected_action)}</span>
@@ -62,9 +63,12 @@ export function AgentActivity({ onOpenCase }: { onOpenCase: (caseId: number) => 
                 </p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <ModeBadge agentMode={d.agent_mode} label={d.mode_label} />
-                  <span className="text-xs text-slate-500">{STATUS_LABEL[d.status] ?? titleCase(d.status)}</span>
+                  <span className="text-xs text-faint">{STATUS_LABEL[d.status] ?? titleCase(d.status)}</span>
                   {d.risk_flags.map((flag) => (
-                    <span key={flag} className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-300">
+                    <span
+                      key={flag}
+                      className={`rounded-full border px-2 py-0.5 text-xs ${RISK_FLAG_STYLES[riskFlagTone(flag)]}`}
+                    >
                       {titleCase(flag)}
                     </span>
                   ))}

@@ -21,21 +21,21 @@ export function ModelHealthCard() {
       {model.data && (
         <div className="space-y-3 text-sm">
           <div className="grid grid-cols-2 gap-y-2">
-            <span className="text-slate-500">Algorithm</span>
-            <span className="text-right text-slate-200">{model.data.algorithm}</span>
-            <span className="text-slate-500">Version</span>
-            <span className="text-right font-mono text-xs text-slate-300">{model.data.version}</span>
-            <span className="text-slate-500">Feature schema</span>
-            <span className="text-right font-mono text-xs text-slate-300">{model.data.feature_schema_version}</span>
-            <span className="text-slate-500">Calibrated</span>
-            <span className="text-right text-slate-200">{model.data.is_calibrated ? 'Yes (isotonic)' : 'No'}</span>
-            <span className="text-slate-500">Operating threshold</span>
-            <span className="text-right tabular-nums text-slate-200">{model.data.operating_threshold}</span>
+            <span className="text-faint">Algorithm</span>
+            <span className="text-right text-ink">{model.data.algorithm}</span>
+            <span className="text-faint">Version</span>
+            <span className="text-right font-mono text-xs text-muted">{model.data.version}</span>
+            <span className="text-faint">Feature schema</span>
+            <span className="text-right font-mono text-xs text-muted">{model.data.feature_schema_version}</span>
+            <span className="text-faint">Calibrated</span>
+            <span className="text-right text-ink">{model.data.is_calibrated ? 'Yes (isotonic)' : 'No'}</span>
+            <span className="text-faint">Operating threshold</span>
+            <span className="text-right tabular-nums text-ink">{model.data.operating_threshold}</span>
           </div>
 
           {evaluation.data && (
             <>
-              <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-1.5 text-xs text-amber-300">
+              <div className="rounded-md border border-warning/25 bg-warning/5 px-3 py-1.5 text-xs text-warning">
                 Synthetic Sandbox Evaluation — not a claim about real-world payment data.
               </div>
               {(() => {
@@ -43,17 +43,17 @@ export function ModelHealthCard() {
                 const split = getSplitInfo(evaluation.data.report)
                 if (!metrics) return null
                 return (
-                  <div className="grid grid-cols-2 gap-y-2 border-t border-slate-800 pt-3">
-                    <span className="text-slate-500">ROC-AUC</span>
-                    <span className="text-right tabular-nums text-slate-200">{metrics.roc_auc?.toFixed(3) ?? '—'}</span>
-                    <span className="text-slate-500">PR-AUC</span>
-                    <span className="text-right tabular-nums text-slate-200">{metrics.pr_auc.toFixed(3)}</span>
-                    <span className="text-slate-500">Brier score</span>
-                    <span className="text-right tabular-nums text-slate-200">{metrics.brier_score.toFixed(3)}</span>
+                  <div className="grid grid-cols-2 gap-y-2 border-t border-line pt-3">
+                    <span className="text-faint">ROC-AUC</span>
+                    <span className="text-right tabular-nums text-ink">{metrics.roc_auc?.toFixed(3) ?? '—'}</span>
+                    <span className="text-faint">PR-AUC</span>
+                    <span className="text-right tabular-nums text-ink">{metrics.pr_auc.toFixed(3)}</span>
+                    <span className="text-faint">Brier score</span>
+                    <span className="text-right tabular-nums text-ink">{metrics.brier_score.toFixed(3)}</span>
                     {split && (
                       <>
-                        <span className="text-slate-500">Test set size</span>
-                        <span className="text-right tabular-nums text-slate-200">{split.test_n} cases</span>
+                        <span className="text-faint">Test set size</span>
+                        <span className="text-right tabular-nums text-ink">{split.test_n} cases</span>
                       </>
                     )}
                   </div>

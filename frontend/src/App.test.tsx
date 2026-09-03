@@ -54,19 +54,24 @@ describe('App', () => {
 
   it('renders the dashboard as the default view', async () => {
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'Agentic Revenue Recovery Intelligence' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Revenue Recovery Command Center' })).toBeInTheDocument()
   })
 
   it('renders every navigation item', () => {
     render(<App />)
-    for (const label of ['Dashboard', 'Cases', 'Case Intelligence', 'Agent Activity', 'Model Intelligence', 'Demo Center']) {
+    for (const label of ['Overview', 'Recovery Cases', 'Case Intelligence', 'Agent Activity', 'Model Intelligence']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
     }
+    // Demo Center is rendered twice by design (desktop sidebar + mobile
+    // utility row, toggled with responsive classes) — jsdom doesn't apply
+    // CSS, so both are present in the tree even though only one is visible
+    // at any given viewport in a real browser.
+    expect(screen.getAllByRole('button', { name: 'Demo Center' }).length).toBeGreaterThanOrEqual(1)
   })
 
   it('navigates to the Demo Center', async () => {
     render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: 'Demo Center' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Demo Center' })[0])
     expect(await screen.findByRole('heading', { name: 'Demo Center' })).toBeInTheDocument()
   })
 

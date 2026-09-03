@@ -98,7 +98,7 @@ describe('CaseIntelligence', () => {
 
   it('renders the transaction amount and status', async () => {
     render(<CaseIntelligence />)
-    await waitFor(() => expect(screen.getByText('$12,499.00')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('₹12,499.00')).toBeInTheDocument())
     expect(screen.getByText('open')).toBeInTheDocument()
   })
 
@@ -141,9 +141,11 @@ describe('CaseIntelligence', () => {
 
   it('renders the pipeline stepper with distinct stage labels', async () => {
     render(<CaseIntelligence />)
-    await waitFor(() => expect(screen.getByText('Diagnosis')).toBeInTheDocument())
-    expect(screen.getByText('ML Probability')).toBeInTheDocument()
-    expect(screen.getByText('Policy Constraints')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Diagnose')).toBeInTheDocument())
+    // "Predict" and "Decide" each appear twice: once as a stepper stage
+    // label, once as a Card eyebrow for the section covering that stage.
+    expect(screen.getAllByText('Predict').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText('Decide').length).toBeGreaterThanOrEqual(2)
     // "Audit" appears both as a stepper stage and as the timeline card's
     // title — both are real, expected occurrences of the same word.
     expect(screen.getAllByText('Audit').length).toBeGreaterThanOrEqual(2)
@@ -152,10 +154,10 @@ describe('CaseIntelligence', () => {
   it('renders the "Why this action?" structured panel with expected value and cost', async () => {
     render(<CaseIntelligence />)
     await waitFor(() => expect(screen.getByText('Why this action?')).toBeInTheDocument())
-    // $9,749.00 (retry_payment's expected value) legitimately appears
+    // ₹9,749.00 (retry_payment's expected value) legitimately appears
     // twice: once in the Available Actions list, once in this panel.
-    expect(screen.getAllByText('$9,749.00').length).toBeGreaterThanOrEqual(2)
-    expect(screen.getByText('$0.25')).toBeInTheDocument() // action cost for retry_payment
+    expect(screen.getAllByText('₹9,749.00').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText('₹0.25')).toBeInTheDocument() // action cost for retry_payment
     expect(screen.getByText('Auto-approved')).toBeInTheDocument()
   })
 

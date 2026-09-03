@@ -16,31 +16,29 @@ export function FailureIntelligence() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="text-xs uppercase tracking-wide text-slate-500">
-                <th className="pb-2 font-medium">Category</th>
-                <th className="pb-2 font-medium text-right">Cases</th>
-                <th className="pb-2 font-medium text-right">Amount at Risk</th>
-                <th className="pb-2 font-medium text-center">Retry Eligible</th>
-                <th className="pb-2 font-medium text-right">Recovered</th>
+              <tr className="text-[11px] uppercase tracking-wide text-faint">
+                <th className="pb-2 pr-4 font-medium">Category</th>
+                <th className="pb-2 pr-4 font-medium text-right">Cases</th>
+                <th className="pb-2 pr-4 font-medium text-right">Amount at Risk</th>
+                <th className="pb-2 pr-4 font-medium text-center">Retry Eligible</th>
+                <th className="pb-2 pr-4 font-medium text-right">Recovered</th>
                 <th className="pb-2 font-medium text-right">Escalated</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-line">
               {data.map((c) => (
                 <tr key={c.decline_code}>
-                  <td className="py-2">
-                    <p className="font-medium text-slate-200">{titleCase(c.decline_code)}</p>
-                    <p className="text-xs text-slate-500">{c.decline_class}</p>
+                  <td className="py-2 pr-4">
+                    <p className="font-medium text-ink">{titleCase(c.decline_code)}</p>
+                    <p className="text-xs text-faint">{c.decline_class}</p>
                   </td>
-                  <td className="py-2 text-right tabular-nums text-slate-300">{c.case_count}</td>
-                  <td className="py-2 text-right tabular-nums text-slate-300">{formatMoney(c.amount_involved_cents)}</td>
-                  <td className="py-2 text-center">
-                    <span className={c.retry_eligible ? 'text-emerald-400' : 'text-slate-600'}>
-                      {c.retry_eligible ? '✓' : '—'}
-                    </span>
+                  <td className="py-2 pr-4 text-right tabular-nums text-muted">{c.case_count}</td>
+                  <td className="py-2 pr-4 text-right tabular-nums text-muted">{formatMoney(c.amount_involved_cents)}</td>
+                  <td className="py-2 pr-4 text-center">
+                    <span className={c.retry_eligible ? 'text-success' : 'text-faint'}>{c.retry_eligible ? '✓' : '—'}</span>
                   </td>
-                  <td className="py-2 text-right tabular-nums text-emerald-400">{c.resolved_count}</td>
-                  <td className="py-2 text-right tabular-nums text-amber-400">{c.escalated_count}</td>
+                  <td className="py-2 pr-4 text-right tabular-nums text-success">{c.resolved_count}</td>
+                  <td className="py-2 text-right tabular-nums text-danger">{c.escalated_count}</td>
                 </tr>
               ))}
             </tbody>

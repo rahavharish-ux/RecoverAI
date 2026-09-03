@@ -1,22 +1,35 @@
+import type { AgentDecision, CaseAction, CaseSummary, ActionOutcome as CaseActionOutcome } from '../types/case'
 import type { Prediction } from '../types/prediction'
 
-export interface IngestResult {
-  payment_attempt: { id: number; attempt_number: number }
-  case: { id: number; status: string; amount_at_risk_cents: number; currency: string }
-  diagnosis: { decline_code: string; decline_class: string; explanation: string } | null
-  prediction: Prediction | null
-  policy_decision: {
-    eligibilities: { action_type: string; allowed: boolean; reason_code: string; message: string }[]
-  } | null
+export interface DemoScenarioExecuteResult {
+  agent_decision: AgentDecision
+  action: CaseAction | null
+  outcome: CaseActionOutcome | null
+  case: CaseSummary
   deduplicated: boolean
 }
 
-async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+/** The full, real result of one Demo Center scenario run — every field
+ * traces back to a persisted database row (see backend
+ * app/services/demo_service.py). Nothing here is assembled client-side:
+ * the frontend only formats what the backend already computed. */
+export interface DemoScenarioRunResult {
+  scenario_id: string
+  ingest: {
+    payment_attempt: { id: number; attempt_number: number }
+    case: CaseSummary
+    diagnosis: { decline_code: string; decline_class: string; explanation: string } | null
+    prediction: Prediction | null
+    deduplicated: boolean
+  }
+  decision: AgentDecision
+  execute: DemoScenarioExecuteResult | null
+  second_decision: AgentDecision | null
+  demo_fixture_applied: boolean
+}
+
+async function postJson<T>(url: string): Promise<T> {
+  const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
   if (!response.ok) {
     const detail = await response.json().catch(() => null)
     const message = (detail as { detail?: { message?: string } | string } | null)?.detail
@@ -26,19 +39,11 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   return (await response.json()) as T
 }
 
-/** Every scenario in the Demo Center goes through this exact endpoint —
- * the same one a real gateway webhook would call. Nothing here is a
- * UI-only simulation; it's a real Detect event against the real backend. */
-export function ingestPaymentAttempt(input: {
-  invoiceId: number
-  paymentMethodId: number
-  amountCents: number
-  declineCode: string
-}): Promise<IngestResult> {
-  return postJson<IngestResult>('/api/v1/payment-attempts', {
-    invoice_id: input.invoiceId,
-    payment_method_id: input.paymentMethodId,
-    amount_cents: input.amountCents,
-    decline_code: input.declineCode,
-  })
+/** Runs one Demo Center scenario end to end against a freshly created,
+ * fully isolated synthetic transaction — the real DETECT -> DIAGNOSE ->
+ * PREDICT -> DECIDE -> ACT -> MEASURE -> AUDIT pipeline, server-side, in a
+ * single call. Every run gets its own case; nothing is reused across
+ * runs, and nothing here is a UI-only simulation. */
+export function runDemoScenario(scenarioId: string): Promise<DemoScenarioRunResult> {
+  return postJson<DemoScenarioRunResult>(`/api/v1/demo/scenarios/${scenarioId}/run`)
 }

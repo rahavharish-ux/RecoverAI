@@ -10,8 +10,9 @@ export function Dashboard({ onOpenCase }: { onOpenCase: (caseId: number) => void
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-400">RecoverAI</p>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-100">Agentic Revenue Recovery Intelligence</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">RecoverAI</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-3xl">Revenue Recovery Command Center</h1>
+        <p className="mt-1 text-sm text-muted">Agentic intelligence for failed-payment recovery</p>
       </header>
 
       <KpiCards />

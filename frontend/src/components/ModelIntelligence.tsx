@@ -17,8 +17,8 @@ export function ModelIntelligence() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Model Intelligence</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-2xl font-bold tracking-tight text-ink">Model Intelligence</h1>
+        <p className="mt-0.5 text-sm text-muted">
           The active recovery-probability model — what it is, how it was evaluated, and an example of how it
           explains a single prediction.
         </p>
@@ -31,34 +31,34 @@ export function ModelIntelligence() {
           <EmptyState message="No model trained yet. Run `python -m training.train` from backend/." />
         )}
         {model.data && (
-          <div className="grid grid-cols-2 gap-y-2 text-sm sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-y-3 text-sm sm:grid-cols-4">
             <div>
-              <p className="text-xs text-slate-500">Algorithm</p>
-              <p className="text-slate-200">{model.data.algorithm}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-faint">Algorithm</p>
+              <p className="text-ink">{model.data.algorithm}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Version</p>
-              <p className="font-mono text-xs text-slate-300">{model.data.version}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-faint">Version</p>
+              <p className="font-mono text-xs text-muted">{model.data.version}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Dataset</p>
-              <p className="font-mono text-xs text-slate-300">{model.data.dataset_version}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-faint">Dataset</p>
+              <p className="font-mono text-xs text-muted">{model.data.dataset_version}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Feature schema</p>
-              <p className="font-mono text-xs text-slate-300">{model.data.feature_schema_version}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-faint">Feature Schema</p>
+              <p className="font-mono text-xs text-muted">{model.data.feature_schema_version}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Calibrated</p>
-              <p className="text-slate-200">{model.data.is_calibrated ? 'Yes (isotonic)' : 'No'}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-faint">Calibrated</p>
+              <p className="text-ink">{model.data.is_calibrated ? 'Yes (isotonic)' : 'No'}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Operating threshold</p>
-              <p className="tabular-nums text-slate-200">{model.data.operating_threshold}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-faint">Operating Threshold</p>
+              <p className="tabular-nums text-ink">{model.data.operating_threshold}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-500">Trained</p>
-              <p className="text-slate-200">{new Date(model.data.trained_at).toLocaleString()}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-faint">Trained</p>
+              <p className="text-ink">{new Date(model.data.trained_at).toLocaleString()}</p>
             </div>
           </div>
         )}
@@ -71,7 +71,7 @@ export function ModelIntelligence() {
           const brierImproved = getBrierImproved(evaluation.data.report)
           return (
             <Card eyebrow="Honestly Measured" title="Synthetic Sandbox Evaluation">
-              <div className="mb-4 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-300">
+              <div className="mb-4 rounded-md border border-warning/25 bg-warning/5 px-3 py-2 text-xs text-warning">
                 Computed on synthetic, generated sandbox data — not real payment history. Not a claim about
                 real-world recovery rates.
               </div>
@@ -83,10 +83,10 @@ export function ModelIntelligence() {
                   <Metric label="F1" value={metrics.f1.toFixed(3)} />
                 </div>
               )}
-              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t border-slate-800 pt-3 text-xs text-slate-500">
+              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 border-t border-line pt-3 text-xs text-faint">
                 {split && (
                   <span>
-                    Train/val/test split: {split.train_n} / {split.val_n} / {split.test_n}
+                    Train / val / test split: {split.train_n} / {split.val_n} / {split.test_n}
                   </span>
                 )}
                 {brierImproved !== null && (
@@ -104,7 +104,7 @@ export function ModelIntelligence() {
           <EmptyState message="No predictions yet — try the Demo Center to generate one." />
         ) : samplePrediction.data ? (
           <div className="space-y-2">
-            <p className="text-xs text-slate-500">From the most recent scored case, Case #{sampleCaseId}:</p>
+            <p className="text-xs text-faint">From the most recent scored case, Case #{sampleCaseId}:</p>
             <PredictionCard prediction={samplePrediction.data} />
           </div>
         ) : (
@@ -118,8 +118,8 @@ export function ModelIntelligence() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="text-lg font-semibold tabular-nums text-slate-100">{value}</p>
+      <p className="text-[11px] font-medium uppercase tracking-wide text-faint">{label}</p>
+      <p className="text-lg font-bold tabular-nums text-ink">{value}</p>
     </div>
   )
 }

@@ -2,15 +2,10 @@ import { useState } from 'react'
 import { listCases } from '../api/cases'
 import { useFetch } from '../hooks/useFetch'
 import { formatMoney } from '../lib/format'
+import { CASE_STATUS_STYLES } from '../lib/theme'
 import { Card } from './ui/Card'
 import { EmptyState, ErrorState, LoadingState } from './ui/States'
 import type { CaseStatus } from '../types/case'
-
-const STATUS_STYLES: Record<CaseStatus, string> = {
-  open: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
-  escalated: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  resolved: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-}
 
 export function CasesList({ onOpenCase }: { onOpenCase: (caseId: number) => void }) {
   const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all'>('all')
@@ -18,8 +13,11 @@ export function CasesList({ onOpenCase }: { onOpenCase: (caseId: number) => void
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Cases</h1>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Recovery Cases</h1>
+          <p className="mt-0.5 text-sm text-muted">Every case Detect has opened, filterable by current status.</p>
+        </div>
         <div className="flex gap-1 text-xs">
           {(['all', 'open', 'escalated', 'resolved'] as const).map((s) => (
             <button
@@ -27,10 +25,10 @@ export function CasesList({ onOpenCase }: { onOpenCase: (caseId: number) => void
               type="button"
               onClick={() => setStatusFilter(s)}
               aria-pressed={statusFilter === s}
-              className={`rounded-full border px-3 py-1 font-medium capitalize focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet-500 ${
+              className={`rounded-full border px-3 py-1 font-medium capitalize transition-colors duration-150 ${
                 statusFilter === s
-                  ? 'border-violet-500/40 bg-violet-500/15 text-violet-300'
-                  : 'border-slate-800 text-slate-400 hover:text-slate-200'
+                  ? 'border-brand/40 bg-brand/15 text-brand'
+                  : 'border-line text-muted hover:text-ink'
               }`}
             >
               {s}
@@ -47,15 +45,15 @@ export function CasesList({ onOpenCase }: { onOpenCase: (caseId: number) => void
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="text-xs uppercase tracking-wide text-slate-500">
-                  <th className="pb-2 font-medium">Case</th>
-                  <th className="pb-2 font-medium text-right">Amount at Risk</th>
-                  <th className="pb-2 font-medium text-right">Recovered</th>
-                  <th className="pb-2 font-medium">Status</th>
+                <tr className="text-[11px] uppercase tracking-wide text-faint">
+                  <th className="pb-2 pr-4 font-medium">Case</th>
+                  <th className="pb-2 pr-4 font-medium text-right">Amount at Risk</th>
+                  <th className="pb-2 pr-4 font-medium text-right">Recovered</th>
+                  <th className="pb-2 pr-4 font-medium">Status</th>
                   <th className="pb-2 font-medium">Opened</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-line">
                 {data.map((c) => (
                   <tr
                     key={c.id}
@@ -69,17 +67,17 @@ export function CasesList({ onOpenCase }: { onOpenCase: (caseId: number) => void
                         onOpenCase(c.id)
                       }
                     }}
-                    className="cursor-pointer hover:bg-slate-800/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet-500"
+                    className="cursor-pointer transition-colors duration-150 hover:bg-surface-hover focus-visible:bg-surface-hover"
                   >
-                    <td className="py-2 font-medium text-violet-300">#{c.id}</td>
-                    <td className="py-2 text-right tabular-nums text-slate-300">{formatMoney(c.amount_at_risk_cents, c.currency)}</td>
-                    <td className="py-2 text-right tabular-nums text-slate-300">{formatMoney(c.amount_recovered_cents, c.currency)}</td>
-                    <td className="py-2">
-                      <span className={`rounded-full border px-2 py-0.5 text-xs font-medium uppercase ${STATUS_STYLES[c.status]}`}>
+                    <td className="py-2 pr-4 font-medium text-brand">#{c.id}</td>
+                    <td className="py-2 pr-4 text-right tabular-nums text-muted">{formatMoney(c.amount_at_risk_cents)}</td>
+                    <td className="py-2 pr-4 text-right tabular-nums text-muted">{formatMoney(c.amount_recovered_cents)}</td>
+                    <td className="py-2 pr-4">
+                      <span className={`rounded-full border px-2 py-0.5 text-xs font-medium uppercase ${CASE_STATUS_STYLES[c.status]}`}>
                         {c.status}
                       </span>
                     </td>
-                    <td className="py-2 text-slate-500">{new Date(c.opened_at).toLocaleString()}</td>
+                    <td className="py-2 text-faint">{new Date(c.opened_at).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -87,7 +85,7 @@ export function CasesList({ onOpenCase }: { onOpenCase: (caseId: number) => void
           </div>
         )}
       </Card>
-      {data && data.length > 0 && <p className="text-xs text-slate-600">{data.length} case(s) shown.</p>}
+      {data && data.length > 0 && <p className="text-xs text-faint">{data.length} case(s) shown.</p>}
     </div>
   )
 }

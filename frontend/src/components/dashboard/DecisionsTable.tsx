@@ -1,17 +1,10 @@
 import { getRecentDecisions } from '../../api/dashboard'
 import { useFetch } from '../../hooks/useFetch'
 import { formatMoney, formatPercent, titleCase } from '../../lib/format'
+import { DECISION_STATUS_TEXT } from '../../lib/theme'
 import { Card } from '../ui/Card'
-import { EmptyState, ErrorState, LoadingState } from '../ui/States'
 import { ModeBadge } from '../ui/ModeBadge'
-
-const STATUS_STYLES: Record<string, string> = {
-  auto_approved: 'text-slate-400',
-  executed: 'text-emerald-400',
-  human_review: 'text-amber-400',
-  rejected: 'text-rose-400',
-  escalated: 'text-amber-400',
-}
+import { EmptyState, ErrorState, LoadingState } from '../ui/States'
 
 export function DecisionsTable({ onOpenCase }: { onOpenCase: (caseId: number) => void }) {
   const { data, loading, error } = useFetch(() => getRecentDecisions(15), [])
@@ -25,25 +18,25 @@ export function DecisionsTable({ onOpenCase }: { onOpenCase: (caseId: number) =>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="text-xs uppercase tracking-wide text-slate-500">
-                <th className="pb-2 font-medium">Case</th>
-                <th className="pb-2 font-medium text-right">Amount at Risk</th>
-                <th className="pb-2 font-medium">Failure</th>
-                <th className="pb-2 font-medium text-right">Probability</th>
-                <th className="pb-2 font-medium">Selected Action</th>
-                <th className="pb-2 font-medium text-right">Expected Value</th>
-                <th className="pb-2 font-medium">Engine</th>
+              <tr className="text-[11px] uppercase tracking-wide text-faint">
+                <th className="pb-2 pr-4 font-medium">Case</th>
+                <th className="pb-2 pr-4 font-medium text-right">Amount at Risk</th>
+                <th className="pb-2 pr-4 font-medium">Failure</th>
+                <th className="pb-2 pr-4 font-medium text-right">Probability</th>
+                <th className="pb-2 pr-4 font-medium">Selected Action</th>
+                <th className="pb-2 pr-4 font-medium text-right">Expected Value</th>
+                <th className="pb-2 pr-4 font-medium">Engine</th>
                 <th className="pb-2 font-medium">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-line">
               {data.map((d) => (
                 <tr
                   key={d.decision_id}
                   role="button"
                   tabIndex={0}
                   aria-label={`Open case ${d.case_id}`}
-                  className="cursor-pointer hover:bg-slate-800/40 focus-visible:bg-slate-800/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet-500"
+                  className="cursor-pointer transition-colors duration-150 hover:bg-surface-hover focus-visible:bg-surface-hover"
                   onClick={() => onOpenCase(d.case_id)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -52,18 +45,18 @@ export function DecisionsTable({ onOpenCase }: { onOpenCase: (caseId: number) =>
                     }
                   }}
                 >
-                  <td className="py-2 font-medium text-violet-300">#{d.case_id}</td>
-                  <td className="py-2 text-right tabular-nums text-slate-300">{formatMoney(d.amount_at_risk_cents)}</td>
-                  <td className="py-2 text-slate-400">{d.decline_code ? titleCase(d.decline_code) : '—'}</td>
-                  <td className="py-2 text-right tabular-nums text-slate-300">{formatPercent(d.recovery_probability)}</td>
-                  <td className="py-2 text-slate-300">{d.selected_action ? titleCase(d.selected_action) : 'No action'}</td>
-                  <td className="py-2 text-right tabular-nums text-slate-300">
+                  <td className="py-2 pr-4 font-medium text-brand">#{d.case_id}</td>
+                  <td className="py-2 pr-4 text-right tabular-nums text-muted">{formatMoney(d.amount_at_risk_cents)}</td>
+                  <td className="py-2 pr-4 text-muted">{d.decline_code ? titleCase(d.decline_code) : '—'}</td>
+                  <td className="py-2 pr-4 text-right tabular-nums text-muted">{formatPercent(d.recovery_probability)}</td>
+                  <td className="py-2 pr-4 text-ink">{d.selected_action ? titleCase(d.selected_action) : 'No action'}</td>
+                  <td className="py-2 pr-4 text-right tabular-nums text-muted">
                     {d.expected_value_cents !== null ? formatMoney(d.expected_value_cents) : '—'}
                   </td>
-                  <td className="py-2">
+                  <td className="py-2 pr-4">
                     <ModeBadge agentMode={d.agent_mode} label={d.mode_label} />
                   </td>
-                  <td className={`py-2 ${STATUS_STYLES[d.status] ?? 'text-slate-400'}`}>{titleCase(d.status)}</td>
+                  <td className={`py-2 font-medium ${DECISION_STATUS_TEXT[d.status] ?? 'text-muted'}`}>{titleCase(d.status)}</td>
                 </tr>
               ))}
             </tbody>
