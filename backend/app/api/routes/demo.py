@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_payment_gateway
 from app.api.serializers import agent_decision_to_schema, agent_execute_to_schema, ingest_result_to_schema
+from app.core.rate_limit import SlidingWindowLimiter
 from app.db.session import get_db
 from app.integrations.payment_gateway import PaymentGatewayPort
 from app.schemas.demo import DemoScenarioRunResult
@@ -10,8 +11,18 @@ from app.services import demo_service
 
 router = APIRouter(prefix="/demo", tags=["demo"])
 
+# Each run creates a fresh customer/invoice/case and, for LLM mode, an
+# API call — bounded so a public demo can't be scripted into unbounded
+# data growth or API spend. Disabled in tests (see tests/conftest.py).
+_demo_run_limiter = SlidingWindowLimiter(max_requests=20, window_seconds=60)
 
-@router.post("/scenarios/{scenario_id}/run", response_model=DemoScenarioRunResult, status_code=201)
+
+@router.post(
+    "/scenarios/{scenario_id}/run",
+    response_model=DemoScenarioRunResult,
+    status_code=201,
+    dependencies=[Depends(_demo_run_limiter)],
+)
 def run_demo_scenario(
     scenario_id: str,
     db: Session = Depends(get_db),

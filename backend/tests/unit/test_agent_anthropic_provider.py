@@ -264,6 +264,68 @@ def test_unexpected_tool_failure_does_not_crash_the_loop(session_factory, seeded
         db.close()
 
 
+def test_write_tool_not_offered_is_rejected_not_executed(session_factory, seeded_invoice):
+    """The model can name a tool by ID even if it was never offered in this
+    call's `tools` list (e.g. a write tool that exists in the shared
+    TOOL_REGISTRY but isn't advertised to the LLM) — the provider must
+    reject it, not execute it. Defense in depth: the agent can only use
+    tools it was actually offered, never the full registry by name alone."""
+    from app.domain.enums import AttemptSource, DeclineCode
+    from app.models.cases import Case
+    from app.models.core import Invoice
+    from app.services import audit_service, ingestion_service
+
+    db = session_factory()
+    try:
+        invoice = db.get(Invoice, seeded_invoice["invoice_id"])
+        result = ingestion_service.record_payment_attempt(
+            db,
+            invoice=invoice,
+            payment_method_id=seeded_invoice["payment_method_id"],
+            amount_cents=4900,
+            currency="usd",
+            decline_code=DeclineCode.CARD_DECLINED,
+            source=AttemptSource.EXTERNAL,
+        )
+        case = db.get(Case, result.case.id)
+        events_before = len(audit_service.list_events(db, case.id))
+
+        turns = {"n": 0}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            turns["n"] += 1
+            if turns["n"] == 1:
+                # record_audit_event exists in the shared tool registry but
+                # is never included in this provider's `tools` list.
+                return httpx.Response(
+                    200,
+                    json=_api_message(
+                        [
+                            {
+                                "type": "tool_use",
+                                "id": "call_1",
+                                "name": "record_audit_event",
+                                "input": {"note": "attacker-injected audit note"},
+                            }
+                        ]
+                    ),
+                )
+            body = json.loads(request.content)
+            last_tool_result = body["messages"][-1]["content"][0]
+            result_payload = json.loads(last_tool_result["content"])
+            assert result_payload["error"] == "tool_not_offered"
+            return httpx.Response(200, json=_api_message([_submit_decision_block()]))
+
+        provider = _make_provider(handler, max_tool_calls=5)
+        decision = provider.generate_decision(make_context(), ToolContext(db=db, case=case))
+        assert decision.selected_action == "retry_payment"
+        assert turns["n"] == 2
+        # Nothing was actually written to the audit trail by the rejected call.
+        assert len(audit_service.list_events(db, case.id)) == events_before
+    finally:
+        db.close()
+
+
 def test_read_tool_call_is_executed_then_decision_follows(session_factory, seeded_invoice):
     from app.domain.enums import AttemptSource, DeclineCode
     from app.models.cases import Case

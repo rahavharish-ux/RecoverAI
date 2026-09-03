@@ -24,7 +24,7 @@ WRITE tools are split into two kinds:
 
 from dataclasses import dataclass
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.agent.types import ToolContext
 from app.core.config import get_settings
@@ -134,7 +134,7 @@ class RecoveryMessageOut(BaseModel):
 
 
 class AuditNoteInput(BaseModel):
-    note: str
+    note: str = Field(max_length=500)
 
 
 class AuditNoteOut(BaseModel):

@@ -9,6 +9,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.api.deps import get_payment_gateway
+from app.api.routes.agent import _decide_limiter, _execute_limiter
+from app.api.routes.demo import _demo_run_limiter
 from app.db.session import get_db
 from app.integrations.payment_gateway import GatewayResult, PaymentGatewayPort
 from app.main import app
@@ -59,6 +61,13 @@ def client(session_factory):
     gateway = FixedGateway(succeed=False)
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_payment_gateway] = lambda: gateway
+    # The rate limiters guard real (public, scriptable) traffic — the test
+    # suite's own request volume isn't the threat they exist for, and a
+    # shared in-memory limiter would otherwise trip across unrelated
+    # tests sharing this process. See app/core/rate_limit.py.
+    app.dependency_overrides[_decide_limiter] = lambda: None
+    app.dependency_overrides[_execute_limiter] = lambda: None
+    app.dependency_overrides[_demo_run_limiter] = lambda: None
 
     test_client = TestClient(app)
     test_client.gateway = gateway  # type: ignore[attr-defined]

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_payment_gateway
+from app.core.rate_limit import SlidingWindowLimiter
 from app.db.session import get_db
 from app.integrations.payment_gateway import PaymentGatewayPort
 from app.models.agent import AgentDecision, AgentToolCall
@@ -22,6 +23,12 @@ from app.services.action_service import ActionNotEligible
 from app.services.agent_service import AgentDecisionNotExecutable
 
 router = APIRouter(prefix="/cases", tags=["agent"])
+
+# Scoped rate limits for the expensive agent-reasoning/execution endpoints
+# — see app/core/rate_limit.py. Disabled in tests via a dependency
+# override (see tests/conftest.py) so normal test volume is unaffected.
+_decide_limiter = SlidingWindowLimiter(max_requests=30, window_seconds=60)
+_execute_limiter = SlidingWindowLimiter(max_requests=30, window_seconds=60)
 
 
 def _get_case_or_404(db: Session, case_id: int) -> Case:
@@ -50,7 +57,12 @@ def _decision_to_out(db: Session, decision: AgentDecision) -> AgentDecisionOut:
     return out
 
 
-@router.post("/{case_id}/agent/decide", response_model=AgentDecisionOut, status_code=201)
+@router.post(
+    "/{case_id}/agent/decide",
+    response_model=AgentDecisionOut,
+    status_code=201,
+    dependencies=[Depends(_decide_limiter)],
+)
 def decide(case_id: int, db: Session = Depends(get_db)) -> AgentDecisionOut:
     """DECIDE: the agent reasons over the case, strictly within the
     policy-allowed action set, and produces a structured decision. This
@@ -60,7 +72,12 @@ def decide(case_id: int, db: Session = Depends(get_db)) -> AgentDecisionOut:
     return _decision_to_out(db, decision)
 
 
-@router.post("/{case_id}/agent/execute", response_model=AgentExecuteResult, status_code=201)
+@router.post(
+    "/{case_id}/agent/execute",
+    response_model=AgentExecuteResult,
+    status_code=201,
+    dependencies=[Depends(_execute_limiter)],
+)
 def execute(
     case_id: int,
     payload: AgentExecuteRequest,
@@ -105,7 +122,11 @@ def execute(
     )
 
 
-@router.post("/{case_id}/agent/decisions/{decision_id}/approve", response_model=AgentExecuteResult)
+@router.post(
+    "/{case_id}/agent/decisions/{decision_id}/approve",
+    response_model=AgentExecuteResult,
+    dependencies=[Depends(_execute_limiter)],
+)
 def approve(
     case_id: int,
     decision_id: int,

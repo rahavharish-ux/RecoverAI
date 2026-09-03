@@ -11,6 +11,7 @@ class ActionRequestIn(BaseModel):
     action_type: ActionType
     client_request_id: str | None = Field(
         default=None,
+        max_length=100,
         description="Caller-supplied correlation id. Resubmitting the same "
         "case_id + action_type + client_request_id always returns the "
         "original result, however much time has passed.",

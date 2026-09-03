@@ -59,6 +59,15 @@ def _read_tool_schemas() -> list[dict]:
     ]
 
 
+# Only read tools (plus submit_decision, handled separately) are ever
+# offered to this provider's tools list below — this is the corresponding
+# server-side enforcement: even if a response names any other tool
+# (e.g. a write tool that exists in the shared TOOL_REGISTRY but was
+# never advertised here), it is rejected, never executed. Defense in
+# depth against a malformed, hallucinating, or manipulated model response.
+_OFFERED_TOOL_NAMES = frozenset(spec.name for spec in READ_TOOL_SPECS)
+
+
 def _context_to_prompt(context: DecisionContext) -> str:
     if context.available_actions:
         allowed = "\n".join(
@@ -134,11 +143,18 @@ class AnthropicAgentProvider(AgentProvider):
             decision = None
             tool_results = []
             for block in tool_use_blocks:
-                if block.get("name") == "submit_decision":
+                tool_name = block.get("name")
+                if tool_name == "submit_decision":
                     decision = self._parse_decision(block.get("input") or {}, context)
                     break
                 try:
-                    result = call_tool(tool_context, block.get("name"), block.get("input") or {})
+                    if tool_name not in _OFFERED_TOOL_NAMES:
+                        raise ToolError(
+                            "tool_not_offered",
+                            f"'{tool_name}' was not offered in this call and cannot be invoked. Only "
+                            "the read-only tools listed, plus submit_decision, are available.",
+                        )
+                    result = call_tool(tool_context, tool_name, block.get("input") or {})
                     output = result.model_dump()
                 except ToolError as exc:
                     output = {"error": exc.code, "message": exc.message}

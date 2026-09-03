@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -37,7 +37,7 @@ def failures(db: Session = Depends(get_db)) -> list[FailureCategoryOut]:
 
 
 @router.get("/decisions", response_model=list[DecisionSummaryOut])
-def decisions(limit: int = 20, db: Session = Depends(get_db)) -> list[DecisionSummaryOut]:
+def decisions(limit: int = Query(default=20, ge=1, le=100), db: Session = Depends(get_db)) -> list[DecisionSummaryOut]:
     """The most recent agent decisions across all cases — the same
     agent_mode/mode_label distinction the Case Intelligence view uses,
     never conflating deterministic and LLM output."""
@@ -45,7 +45,7 @@ def decisions(limit: int = 20, db: Session = Depends(get_db)) -> list[DecisionSu
 
 
 @router.get("/priority-cases", response_model=list[PriorityCaseOut])
-def priority_cases(limit: int = 20, db: Session = Depends(get_db)) -> list[PriorityCaseOut]:
+def priority_cases(limit: int = Query(default=20, ge=1, le=100), db: Session = Depends(get_db)) -> list[PriorityCaseOut]:
     """Open cases ranked by amount at risk (deterministic, matches the
     ordering GET /cases already uses), enriched with each case's latest
     prediction and decision if one exists."""

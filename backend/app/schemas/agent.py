@@ -64,14 +64,17 @@ class AgentTraceOut(BaseModel):
 class AgentExecuteRequest(BaseModel):
     client_request_id: str | None = Field(
         default=None,
+        max_length=100,
         description="Caller-supplied correlation id, forwarded to the same idempotency mechanism "
         "Phase 1 actions use — repeated execute calls for the same decision never double-execute.",
     )
 
 
 class AgentReviewRequest(BaseModel):
-    reviewed_by: str = Field(description="Identifier of the human reviewer — free text, no auth system yet.")
-    note: str | None = None
+    reviewed_by: str = Field(
+        max_length=80, description="Identifier of the human reviewer — free text, no auth system yet."
+    )
+    note: str | None = Field(default=None, max_length=400)
 
 
 class AgentExecuteResult(BaseModel):

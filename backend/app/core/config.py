@@ -20,6 +20,15 @@ class Settings(BaseSettings):
     supabase_key: str = ""
 
     cors_origins: list[str] = ["http://localhost:5173"]
+    # Permissive by default ("*" = no restriction) since the real deployment
+    # hostname isn't known ahead of time and enforcing the wrong value would
+    # break the app outright. Set to the actual deployed host(s) via env var
+    # (JSON array, same convention as cors_origins) once known — see
+    # app/main.py's TrustedHostMiddleware.
+    trusted_hosts: list[str] = ["*"]
+    # Hard caps for the lightweight hardening in app/main.py — generous
+    # enough that no legitimate request is ever affected.
+    max_request_body_bytes: int = 262_144  # 256 KB
 
     # --- Deterministic policy (see app/domain/policy.py) ---
     max_retry_attempts: int = 3

@@ -15,11 +15,13 @@ class PaymentAttemptIngestRequest(BaseModel):
 
     invoice_id: int
     payment_method_id: int
-    amount_cents: int = Field(gt=0)
-    currency: str = "usd"
+    amount_cents: int = Field(gt=0, le=100_000_000, description="Bounded to a generous $1,000,000.00 cap.")
+    currency: str = Field(default="usd", max_length=3)
     decline_code: DeclineCode | None = None
     external_event_id: str | None = Field(
-        default=None, description="Optional caller-supplied id for de-duplicating redelivered events."
+        default=None,
+        max_length=80,
+        description="Optional caller-supplied id for de-duplicating redelivered events.",
     )
     attempted_at: datetime | None = None
 

@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.domain.decline_taxonomy import diagnose
 from app.domain.enums import (
     ActionOutcomeResult,
@@ -28,7 +29,7 @@ from app.models.actions import Action, ActionOutcome
 from app.models.cases import Case
 from app.models.core import Invoice
 from app.models.payments import PaymentAttempt
-from app.services import audit_service, ingestion_service, policy_service
+from app.services import audit_service, case_query, ingestion_service, policy_service
 
 
 class ActionNotEligible(Exception):
@@ -36,6 +37,50 @@ class ActionNotEligible(Exception):
         self.reason_code = reason_code
         self.message = message
         super().__init__(message)
+
+
+def _direct_human_review_violation(db: Session, case: Case, action_type: ActionType) -> tuple[str, str] | None:
+    """Only consulted by request_action() when `enforce_direct_human_review`
+    is set — i.e. only for the direct, non-agent `POST /cases/{id}/actions`
+    entry point (see app/api/routes/cases.py). The high-value / low-model-
+    confidence thresholds that force the autonomous agent's own decision
+    into human_review (app/agent/risk.py::compute_deterministic_risk_flags)
+    are otherwise agent-layer-only — the deterministic policy engine
+    (app/domain/policy.py) never sees them. Without this check, a caller
+    could get the equivalent of an unreviewed autonomous retry simply by
+    calling this endpoint directly instead of going through /agent/decide.
+
+    Deliberately narrower than the agent's own risk flags: it does NOT
+    include "repeated failures," which is an agent-autonomy caution, not a
+    per-transaction risk signal — a human directly retrying the same case
+    multiple times is exactly what the pre-existing retry-cap and cooldown
+    policy rules (enforced unconditionally, for every caller, a few lines
+    below) already exist to bound, and is legitimate Phase 1 behavior this
+    must not break.
+
+    Never consulted on the agent's own execute()/approve_decision() path —
+    a decision that has already gone through (or been explicitly approved
+    after) human review is not re-gated here."""
+    if action_type != ActionType.RETRY_PAYMENT:
+        return None  # only the money-moving, probabilistic action needs this extra gate
+
+    settings = get_settings()
+    if case.amount_at_risk_cents >= settings.human_review_amount_threshold_cents:
+        return (
+            "human_review_required",
+            "This case's amount at risk meets or exceeds the human-review threshold — request "
+            "this through the agent decide/approve flow instead of a direct action.",
+        )
+
+    prediction = case_query.latest_ml_prediction(db, case.id)
+    if prediction is not None and prediction.recovery_probability < settings.human_review_confidence_floor:
+        return (
+            "human_review_required",
+            "This case's recovery-probability confidence is below the human-review floor — "
+            "request this through the agent decide/approve flow instead of a direct action.",
+        )
+
+    return None
 
 
 def _build_idempotency_key(case_id: int, action_type: ActionType, token: str) -> str:
@@ -59,6 +104,7 @@ def request_action(
     action_type: ActionType,
     gateway: PaymentGatewayPort,
     client_request_id: str | None = None,
+    enforce_direct_human_review: bool = False,
 ) -> tuple[Action, ActionOutcome | None, PaymentAttempt | None, bool]:
     now = datetime.now(timezone.utc)
 
@@ -94,6 +140,20 @@ def request_action(
         )
         db.commit()
         raise ActionNotEligible(reason_code, message)
+
+    if enforce_direct_human_review:
+        violation = _direct_human_review_violation(db, case, action_type)
+        if violation is not None:
+            reason_code, message = violation
+            audit_service.write_event(
+                db,
+                case_id=case.id,
+                event_type=CaseEventType.ACTION_REJECTED,
+                summary=f"{action_type.value} rejected — {reason_code}.",
+                details={"reason_code": reason_code, "message": message, "client_request_id": client_request_id},
+            )
+            db.commit()
+            raise ActionNotEligible(reason_code, message)
 
     sequence = _next_sequence(db, case.id, action_type)
     token = client_request_id or f"seq-{sequence}-{int(now.timestamp() * 1000)}"

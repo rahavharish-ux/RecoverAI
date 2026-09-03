@@ -36,7 +36,9 @@ def list_cases(
     query = db.query(Case)
     if status is not None:
         query = query.filter(Case.status == status)
-    cases = query.order_by(Case.amount_at_risk_cents.desc(), Case.opened_at.asc()).all()
+    # A defensive cap, not a product feature: prevents an unbounded
+    # response as the sandbox's case count grows over a long-running demo.
+    cases = query.order_by(Case.amount_at_risk_cents.desc(), Case.opened_at.asc()).limit(500).all()
     return [CaseSummaryOut.model_validate(c) for c in cases]
 
 
@@ -188,6 +190,7 @@ def post_case_action(
             action_type=payload.action_type,
             gateway=gateway,
             client_request_id=payload.client_request_id,
+            enforce_direct_human_review=True,
         )
     except ActionNotEligible as exc:
         raise HTTPException(
