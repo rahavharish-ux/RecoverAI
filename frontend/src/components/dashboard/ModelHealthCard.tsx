@@ -16,7 +16,7 @@ export function ModelHealthCard() {
       {loading && <LoadingState label="Loading model…" />}
       {error && <ErrorState message={error} />}
       {!loading && !error && !model.data && (
-        <EmptyState message="No model trained yet. Run `python -m training.train` from backend/." />
+        <EmptyState message="No model trained yet." action={{ label: 'Run python -m training.train from backend/' }} />
       )}
       {model.data && (
         <div className="space-y-3 text-sm">

@@ -13,7 +13,9 @@ export function DecisionsTable({ onOpenCase }: { onOpenCase: (caseId: number) =>
     <Card eyebrow="Decide" title="AI Recovery Decisions">
       {loading && <LoadingState label="Loading decisions…" />}
       {error && <ErrorState message={error} />}
-      {data && data.length === 0 && <EmptyState message="No agent decisions yet — run a scenario from the Demo Center." />}
+      {data && data.length === 0 && (
+        <EmptyState message="No agent decisions yet." action={{ label: 'Run a scenario from the Demo Center' }} />
+      )}
       {data && data.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">

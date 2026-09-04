@@ -11,7 +11,9 @@ export function FailureIntelligence() {
     <Card eyebrow="Diagnose" title="Failure Intelligence">
       {loading && <LoadingState label="Loading failure categories…" />}
       {error && <ErrorState message={error} />}
-      {data && data.length === 0 && <EmptyState message="No diagnosed failures yet." />}
+      {data && data.length === 0 && (
+        <EmptyState message="No diagnosed failures yet." action={{ label: 'Run a scenario from the Demo Center' }} />
+      )}
       {data && data.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">

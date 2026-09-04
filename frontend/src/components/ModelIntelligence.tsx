@@ -28,7 +28,7 @@ export function ModelIntelligence() {
         {model.loading && <LoadingState label="Loading model…" />}
         {model.error && <ErrorState message={model.error} />}
         {!model.loading && !model.data && (
-          <EmptyState message="No model trained yet. Run `python -m training.train` from backend/." />
+          <EmptyState message="No model trained yet." action={{ label: 'Run python -m training.train from backend/' }} />
         )}
         {model.data && (
           <div className="grid grid-cols-2 gap-y-3 text-sm sm:grid-cols-4">
@@ -101,14 +101,17 @@ export function ModelIntelligence() {
         {recentDecisions.loading || samplePrediction.loading ? (
           <LoadingState label="Loading example…" />
         ) : sampleCaseId === null ? (
-          <EmptyState message="No predictions yet — try the Demo Center to generate one." />
+          <EmptyState message="No predictions yet." action={{ label: 'Run a scenario from the Demo Center' }} />
         ) : samplePrediction.data ? (
           <div className="space-y-2">
             <p className="text-xs text-faint">From the most recent scored case, Case #{sampleCaseId}:</p>
             <PredictionCard prediction={samplePrediction.data} />
           </div>
         ) : (
-          <EmptyState message="No prediction stored for the most recent case." />
+          <EmptyState
+            message="No prediction stored for the most recent case."
+            action={{ label: 'Run a scenario from the Demo Center' }}
+          />
         )}
       </Card>
     </div>

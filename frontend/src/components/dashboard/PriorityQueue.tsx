@@ -12,7 +12,9 @@ export function PriorityQueue({ onOpenCase }: { onOpenCase: (caseId: number) => 
     <Card eyebrow="Triage" title="Priority Recovery Queue">
       {loading && <LoadingState label="Loading queue…" />}
       {error && <ErrorState message={error} />}
-      {data && data.length === 0 && <EmptyState message="No open cases right now." />}
+      {data && data.length === 0 && (
+        <EmptyState message="No open cases right now." action={{ label: 'Run a scenario from the Demo Center' }} />
+      )}
       {data && data.length > 0 && (
         <ul className="space-y-2">
           {data.map((c) => (

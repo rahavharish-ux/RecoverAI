@@ -30,12 +30,14 @@ export function AgentActivity({ onOpenCase }: { onOpenCase: (caseId: number) => 
       <Card>
         {loading && <LoadingState label="Loading activity…" />}
         {error && <ErrorState message={error} />}
-        {data && data.length === 0 && <EmptyState message="No agent activity yet — try the Demo Center." />}
+        {data && data.length === 0 && (
+          <EmptyState message="No agent activity yet." action={{ label: 'Run a scenario from the Demo Center' }} />
+        )}
         {data && data.length > 0 && (
           <ol className="relative space-y-5 border-l border-line pl-5">
             {data.map((d) => (
               <li key={d.decision_id} className="relative">
-                <span className="absolute -left-[25px] top-1 h-2 w-2 rounded-full bg-ai ring-4 ring-surface" />
+                <span className="absolute -left-[25px] top-1 h-2 w-2 rounded-full bg-line-strong ring-4 ring-surface" />
                 <div className="flex flex-wrap items-center gap-2 text-xs text-faint">
                   <button
                     type="button"

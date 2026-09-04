@@ -40,7 +40,16 @@ export function CasesList({ onOpenCase }: { onOpenCase: (caseId: number) => void
       <Card>
         {loading && <LoadingState label="Loading cases…" />}
         {error && <ErrorState message={error} />}
-        {data && data.length === 0 && <EmptyState message="No cases match this filter." />}
+        {data && data.length === 0 && (
+          <EmptyState
+            message={statusFilter === 'all' ? 'No cases yet.' : `No ${statusFilter} cases.`}
+            action={
+              statusFilter === 'all'
+                ? { label: 'Run a scenario from the Demo Center' }
+                : { label: 'Clear filter', onClick: () => setStatusFilter('all') }
+            }
+          />
+        )}
         {data && data.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">

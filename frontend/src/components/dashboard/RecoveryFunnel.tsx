@@ -21,7 +21,9 @@ export function RecoveryFunnel() {
     <Card eyebrow="Detect → Measure" title="Recovery Funnel">
       {loading && <LoadingState label="Loading funnel…" />}
       {error && <ErrorState message={error} />}
-      {data && data.length === 0 && <EmptyState message="No cases yet." />}
+      {data && data.length === 0 && (
+        <EmptyState message="No cases yet." action={{ label: 'Run a scenario from the Demo Center' }} />
+      )}
       {data && data.length > 0 && (
         <div className="space-y-2.5">
           {data.map((stage, i) => (
