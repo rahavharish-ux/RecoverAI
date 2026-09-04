@@ -1,6 +1,7 @@
 import { getDashboardSummary } from '../../api/dashboard'
 import { useFetch } from '../../hooks/useFetch'
-import { formatMoney, formatPercent } from '../../lib/format'
+import { formatPercent } from '../../lib/format'
+import { META_LABEL_CLASS } from '../../lib/theme'
 import { Card } from '../ui/Card'
 import { ErrorState, LoadingState } from '../ui/States'
 
@@ -39,9 +40,8 @@ export function KpiCards() {
         ? `Of closed cases — ${data.active_recovery_cases} still active`
         : 'Of closed cases'
 
+  // Revenue at Risk lives in the hero above — it isn't repeated here.
   const kpis: Kpi[] = [
-    { label: 'Revenue at Risk', value: formatMoney(data.revenue_at_risk_cents), tone: data.revenue_at_risk_cents > 0 ? 'warning' : 'neutral' },
-    { label: 'Recovered Revenue', value: formatMoney(data.recovered_revenue_cents), tone: 'success' },
     { label: 'Recovery Rate', value: formatPercent(data.recovery_rate), tone: 'neutral', caption: recoveryRateCaption },
     { label: 'Active Recovery Cases', value: String(data.active_recovery_cases), tone: 'brand' },
     { label: 'Failed Payments', value: String(data.failed_payments), tone: 'neutral' },
@@ -49,12 +49,12 @@ export function KpiCards() {
   ]
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {kpis.map((kpi) => (
-        <Card key={kpi.label} className="!p-4">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-faint">{kpi.label}</p>
+        <Card key={kpi.label}>
+          <p className={META_LABEL_CLASS}>{kpi.label}</p>
           <p className={`mt-1.5 text-2xl font-bold tabular-nums ${TONE_STYLES[kpi.tone]}`}>{kpi.value}</p>
-          {kpi.caption && <p className="mt-0.5 text-[11px] text-faint">{kpi.caption}</p>}
+          {kpi.caption && <p className="mt-0.5 text-xs text-faint">{kpi.caption}</p>}
         </Card>
       ))}
     </div>

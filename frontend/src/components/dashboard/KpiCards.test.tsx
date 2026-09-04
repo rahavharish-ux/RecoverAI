@@ -26,9 +26,7 @@ describe('KpiCards', () => {
       ),
     )
     render(<KpiCards />)
-    await waitFor(() => expect(screen.getByText('₹4,900.00')).toBeInTheDocument())
-    expect(screen.getByText('₹1,250.00')).toBeInTheDocument()
-    expect(screen.getByText('75%')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('75%')).toBeInTheDocument())
     expect(screen.getByText('4')).toBeInTheDocument()
     expect(screen.getByText('12')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()

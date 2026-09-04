@@ -5,6 +5,7 @@ import { DECISION_STATUS_TEXT } from '../../lib/theme'
 import { Card } from '../ui/Card'
 import { ModeBadge } from '../ui/ModeBadge'
 import { EmptyState, ErrorState, LoadingState } from '../ui/States'
+import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } from '../ui/Table'
 
 export function DecisionsTable({ onOpenCase }: { onOpenCase: (caseId: number) => void }) {
   const { data, loading, error } = useFetch(() => getRecentDecisions(15), [])
@@ -17,53 +18,36 @@ export function DecisionsTable({ onOpenCase }: { onOpenCase: (caseId: number) =>
         <EmptyState message="No agent decisions yet." action={{ label: 'Run a scenario from the Demo Center' }} />
       )}
       {data && data.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="text-[11px] uppercase tracking-wide text-faint">
-                <th className="pb-2 pr-4 font-medium">Case</th>
-                <th className="pb-2 pr-4 font-medium text-right">Amount at Risk</th>
-                <th className="pb-2 pr-4 font-medium">Failure</th>
-                <th className="pb-2 pr-4 font-medium text-right">Probability</th>
-                <th className="pb-2 pr-4 font-medium">Selected Action</th>
-                <th className="pb-2 pr-4 font-medium text-right">Expected Value</th>
-                <th className="pb-2 pr-4 font-medium">Engine</th>
-                <th className="pb-2 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {data.map((d) => (
-                <tr
-                  key={d.decision_id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Open case ${d.case_id}`}
-                  className="cursor-pointer transition-colors duration-150 hover:bg-surface-hover focus-visible:bg-surface-hover"
-                  onClick={() => onOpenCase(d.case_id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      onOpenCase(d.case_id)
-                    }
-                  }}
-                >
-                  <td className="py-2 pr-4 font-medium text-brand">#{d.case_id}</td>
-                  <td className="py-2 pr-4 text-right tabular-nums text-muted">{formatMoney(d.amount_at_risk_cents)}</td>
-                  <td className="py-2 pr-4 text-muted">{d.decline_code ? titleCase(d.decline_code) : '—'}</td>
-                  <td className="py-2 pr-4 text-right tabular-nums text-muted">{formatPercent(d.recovery_probability)}</td>
-                  <td className="py-2 pr-4 text-ink">{d.selected_action ? titleCase(d.selected_action) : 'No action'}</td>
-                  <td className="py-2 pr-4 text-right tabular-nums text-muted">
-                    {d.expected_value_cents !== null ? formatMoney(d.expected_value_cents) : '—'}
-                  </td>
-                  <td className="py-2 pr-4">
-                    <ModeBadge agentMode={d.agent_mode} label={d.mode_label} />
-                  </td>
-                  <td className={`py-2 font-medium ${DECISION_STATUS_TEXT[d.status] ?? 'text-muted'}`}>{titleCase(d.status)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHead>
+            <TableHeaderCell>Case</TableHeaderCell>
+            <TableHeaderCell align="right">Amount at Risk</TableHeaderCell>
+            <TableHeaderCell>Failure</TableHeaderCell>
+            <TableHeaderCell align="right">Probability</TableHeaderCell>
+            <TableHeaderCell>Selected Action</TableHeaderCell>
+            <TableHeaderCell align="right">Expected Value</TableHeaderCell>
+            <TableHeaderCell>Engine</TableHeaderCell>
+            <TableHeaderCell>Status</TableHeaderCell>
+          </TableHead>
+          <TableBody>
+            {data.map((d) => (
+              <TableRow key={d.decision_id} onClick={() => onOpenCase(d.case_id)} ariaLabel={`Open case ${d.case_id}`}>
+                <TableCell className="font-medium text-brand">#{d.case_id}</TableCell>
+                <TableCell align="right" className="text-muted">{formatMoney(d.amount_at_risk_cents)}</TableCell>
+                <TableCell className="text-muted">{d.decline_code ? titleCase(d.decline_code) : '—'}</TableCell>
+                <TableCell align="right" className="text-muted">{formatPercent(d.recovery_probability)}</TableCell>
+                <TableCell className="text-ink">{d.selected_action ? titleCase(d.selected_action) : 'No action'}</TableCell>
+                <TableCell align="right" className="text-muted">
+                  {d.expected_value_cents !== null ? formatMoney(d.expected_value_cents) : '—'}
+                </TableCell>
+                <TableCell>
+                  <ModeBadge agentMode={d.agent_mode} label={d.mode_label} />
+                </TableCell>
+                <TableCell className={`font-medium ${DECISION_STATUS_TEXT[d.status] ?? 'text-muted'}`}>{titleCase(d.status)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
     </Card>
   )

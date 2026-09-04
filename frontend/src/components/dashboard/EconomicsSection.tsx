@@ -1,6 +1,7 @@
 import { getEconomics } from '../../api/dashboard'
 import { useFetch } from '../../hooks/useFetch'
 import { formatMoney } from '../../lib/format'
+import { META_LABEL_CLASS } from '../../lib/theme'
 import { Card } from '../ui/Card'
 import { ErrorState, LoadingState } from '../ui/States'
 
@@ -21,7 +22,7 @@ export function EconomicsSection() {
               { label: 'Net Recovery Value', value: data.net_recovery_value_cents, tone: 'text-success' },
             ].map((item) => (
               <div key={item.label}>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-faint">{item.label}</p>
+                <p className={META_LABEL_CLASS}>{item.label}</p>
                 <p className={`text-lg font-bold tabular-nums ${item.tone}`}>{formatMoney(item.value)}</p>
               </div>
             ))}

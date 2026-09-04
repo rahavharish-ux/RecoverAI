@@ -11,7 +11,11 @@ const STAGES: Stage[] = [
   { label: 'Detect', eventTypes: ['case_opened', 'payment_attempt_recorded'] },
   { label: 'Diagnose', eventTypes: ['diagnosed'] },
   { label: 'Predict', eventTypes: ['predicted'] },
-  { label: 'Decide', eventTypes: ['policy_evaluated', 'agent_decided', 'agent_decision_reviewed'] },
+  // policy_evaluated is deliberately NOT here — ingestion_service writes it
+  // automatically for every diagnosed failure, before any agent has ever
+  // been asked to decide anything. Only a real agent_decided (or a human
+  // review verdict on one) counts as this case having reached Decide.
+  { label: 'Decide', eventTypes: ['agent_decided', 'agent_decision_reviewed'] },
   { label: 'Act', eventTypes: ['action_requested', 'action_rejected', 'action_executed'] },
   { label: 'Measure', eventTypes: ['action_outcome_recorded', 'case_resolved', 'case_escalated'] },
 ]
@@ -74,13 +78,17 @@ export function PipelineStepper({
   resolved?: boolean
 }) {
   const presentTypes = new Set(events.map((e) => e.event_type))
+  // Each stage's own event(s), independently — never inferred from a later
+  // stage having happened. PREDICT is best-effort and silently skipped
+  // when no model is trained; that must never make it (or anything before
+  // it) look "completed" just because DECIDE/ACT/MEASURE later succeeded
+  // without a prediction backing them.
   const reached = STAGES.map((stage) => stage.eventTypes.some((t) => presentTypes.has(t)))
-  const currentIndex = reached.lastIndexOf(true)
+  const firstPendingIndex = reached.indexOf(false)
   const auditReached = events.length > 0
 
   const statuses: StageStatus[] = STAGES.map((_, i) => {
-    if (i > currentIndex) return busy && i === currentIndex + 1 ? 'active' : 'pending'
-    if (i < currentIndex) return 'completed'
+    if (!reached[i]) return busy && i === firstPendingIndex ? 'active' : 'pending'
     if (i === DECIDE_INDEX && requiresHumanReview && !reached[ACT_INDEX]) return 'blocked'
     if (i === MEASURE_INDEX && resolved) return 'success'
     return 'completed'
@@ -96,7 +104,7 @@ export function PipelineStepper({
         const nextFilled = i < allStatuses.length - 1 && allStatuses[i + 1] !== 'pending'
         const caption = STATUS_CAPTION[status]
         return (
-          <li key={label} className="flex flex-1 flex-col items-center text-center last:flex-none" aria-current={status !== 'pending' && i === currentIndex ? 'step' : undefined}>
+          <li key={label} className="flex flex-1 flex-col items-center text-center last:flex-none" aria-current={i === firstPendingIndex ? 'step' : undefined}>
             <div className="flex w-full items-center">
               <div className={`h-px flex-1 ${i === 0 ? 'invisible' : prevFilled ? 'bg-brand' : 'bg-line'}`} />
               <span

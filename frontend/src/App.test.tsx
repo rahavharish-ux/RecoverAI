@@ -54,7 +54,7 @@ describe('App', () => {
 
   it('renders the dashboard as the default view', async () => {
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'Revenue Recovery Command Center' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument()
   })
 
   it('renders every navigation item', () => {
