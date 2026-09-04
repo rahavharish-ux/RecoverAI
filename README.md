@@ -59,6 +59,64 @@ Frontend: React + TypeScript + Vite + Tailwind, a small set of views
 Demo Center) navigated with local component state — no router library,
 deliberately kept minimal.
 
+## Product Screenshots
+
+Captured directly from the running application using synthetic sandbox
+data; these screenshots show the real application UI and pipeline rather
+than presentation-only mockups.
+
+### 1. Executive Recovery Dashboard
+
+The operational command center: revenue at risk, recovered revenue,
+recovery rate, active cases, the Detect → Measure recovery funnel,
+failure intelligence, the priority recovery queue, and model health —
+all computed live from the same underlying case data.
+
+> The Recovery Rate KPI is the success rate among **closed** cases
+> (resolved ÷ resolved + escalated), not recovered ÷ every case ever
+> opened — the UI now labels this explicitly so it's never mistaken for
+> the funnel's "Measure — Recovered" percentage, which uses that other,
+> larger denominator.
+
+![RecoverAI Executive Recovery Dashboard](docs/screenshots/01-overview-dashboard.png)
+
+### 2. Successful Case Intelligence
+
+Case #11 — a real synthetic Demo Center Scenario A execution, shown
+through the full Detect → Diagnose → Predict → Decide → Act → Measure →
+Audit pipeline: a 75% recovery prediction, `retry_payment` selected with
+a ₹21.39 expected value, a successful ₹29.00 recovery, and the resulting
+audit trail.
+
+![RecoverAI Successful Case Intelligence](docs/screenshots/02-case-intelligence.png)
+
+### 3. Agent Decision & Safety
+
+Case #1 — the safety boundary in action: low model confidence, repeated
+recovery failures, and the maximum-automated-decisions limit each
+trigger human review. The system does not execute the recovery action
+while review is required.
+
+![RecoverAI Agent Decision and Safety](docs/screenshots/03-agent-decision.png)
+
+### 4. Model Intelligence
+
+The ML layer is exposed, not hidden behind the agent: the active model
+(logistic regression, isotonic-calibrated) and its honestly-measured
+synthetic sandbox evaluation — ROC-AUC 0.870, PR-AUC 0.658, Brier score
+0.123, F1 0.550 — alongside a worked explanation of one real prediction.
+
+![RecoverAI Model Intelligence](docs/screenshots/04-model-intelligence.png)
+
+### 5. Demo Center
+
+Five guided scenarios — Successful Recovery, Fraud → Human Review,
+Expired Card → Method Update, Retry & Cooldown Protection, and High
+Value → Human Review — each running the real API and pipeline against a
+freshly isolated synthetic case, not a presentation-only UI simulation.
+
+![RecoverAI Demo Center](docs/screenshots/05-demo-center.png)
+
 ## AI/ML
 
 - **Target**: P(a retry attempt on this failed payment would succeed).
@@ -359,11 +417,6 @@ npm run build       # typecheck + production build
 | `GET /api/v1/dashboard/decisions` | Recent agent decisions across all cases |
 | `GET /api/v1/dashboard/priority-cases` | Open cases ranked by amount at risk |
 | `GET /api/v1/dashboard/economics` | Sandbox recovery economics |
-
-## Screenshots
-
-*(placeholder — add screenshots of the Dashboard, Case Intelligence, and
-Demo Center views here before final submission)*
 
 ## Future Work
 

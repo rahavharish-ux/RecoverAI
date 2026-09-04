@@ -32,9 +32,14 @@ describe('KpiCards', () => {
     expect(screen.getByText('4')).toBeInTheDocument()
     expect(screen.getByText('12')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()
+    // The caption disambiguates recovery_rate (resolved / closed cases)
+    // from the funnel's "Measure — Recovered" (recovered / all cases ever
+    // opened) — without it, a 100% rate next to a lower funnel percentage
+    // reads as a bug rather than two different, both-correct metrics.
+    expect(screen.getByText('Of closed cases — 4 still active')).toBeInTheDocument()
   })
 
-  it('renders an em dash for recovery rate when there is no terminal case yet', async () => {
+  it('renders an em dash and a "no cases closed yet" caption when there is no terminal case yet', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>
@@ -50,6 +55,26 @@ describe('KpiCards', () => {
     )
     render(<KpiCards />)
     await waitFor(() => expect(screen.getByText('—')).toBeInTheDocument())
+    expect(screen.getByText('No cases closed yet')).toBeInTheDocument()
+  })
+
+  it('omits the "still active" count once every case has reached a terminal state', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonResponse({
+          revenue_at_risk_cents: 0,
+          recovered_revenue_cents: 11600,
+          recovery_rate: 1.0,
+          active_recovery_cases: 0,
+          failed_payments: 14,
+          human_escalations: 10,
+        }),
+      ),
+    )
+    render(<KpiCards />)
+    await waitFor(() => expect(screen.getByText('100%')).toBeInTheDocument())
+    expect(screen.getByText('Of closed cases')).toBeInTheDocument()
   })
 
   it('shows an error state when the request fails', async () => {
