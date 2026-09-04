@@ -9,9 +9,13 @@ Agentic Revenue Recovery & Payment Failure Intelligence Platform.
 ## Status
 
 **Phases 1–4 are implemented.** Pipeline: Detect → Diagnose → Predict →
-Decide → Act → Measure → Learn → Audit, plus an executive dashboard and a
-polished Case Intelligence view over the same data. Not production-ready —
-see [Synthetic Data Disclaimer](#synthetic-data-disclaimer) and
+Decide → Act → Measure → Learn → Audit, plus a full operator UI over the
+same data — Overview, Recovery Cases, Case Intelligence, Agent Activity,
+Model Intelligence, and Demo Center. A recovery-probability model is
+trained, calibrated, and registered; Model Intelligence shows the real
+active model and its held-out evaluation, not an empty state. Not
+production-ready — see
+[Synthetic Data Disclaimer](#synthetic-data-disclaimer) and
 [Known Limitations](#known-limitations-and-honest-caveats).
 
 ## Problem
@@ -55,9 +59,9 @@ DETECT → DIAGNOSE → PREDICT → DECIDE → ACT → MEASURE → LEARN → AUD
   same tables.
 
 Frontend: React + TypeScript + Vite + Tailwind, a small set of views
-(Dashboard, Cases, Case Intelligence, Agent Activity, Model Intelligence,
-Demo Center) navigated with local component state — no router library,
-deliberately kept minimal.
+(Overview, Recovery Cases, Case Intelligence, Agent Activity, Model
+Intelligence, Demo Center) navigated with local component state — no
+router library, deliberately kept minimal.
 
 ## Product Screenshots
 
@@ -65,48 +69,57 @@ Captured directly from the running application using synthetic sandbox
 data; these screenshots show the real application UI and pipeline rather
 than presentation-only mockups.
 
-### 1. Executive Recovery Dashboard
+### 1. Overview Dashboard
 
-The operational command center: revenue at risk, recovered revenue,
-recovery rate, active cases, the Detect → Measure recovery funnel,
-failure intelligence, the priority recovery queue, and model health —
-all computed live from the same underlying case data.
+The operational queue at a glance: a Revenue-at-Risk hero (the single
+most important live signal, not a repeated-card grid), the Detect →
+Measure recovery funnel, failure intelligence, the priority recovery
+queue, and a Recovery Prediction Model panel reading the real trained
+model's live metrics — all computed from the same underlying case data,
+none of it hand-typed.
 
 > The Recovery Rate KPI is the success rate among **closed** cases
 > (resolved ÷ resolved + escalated), not recovered ÷ every case ever
-> opened — the UI now labels this explicitly so it's never mistaken for
-> the funnel's "Measure — Recovered" percentage, which uses that other,
+> opened — the UI labels this explicitly so it's never mistaken for the
+> funnel's "Measure — Recovered" percentage, which uses that other,
 > larger denominator.
 
-![RecoverAI Executive Recovery Dashboard](docs/screenshots/01-overview-dashboard.png)
+![Overview Dashboard](docs/screenshots/01-overview-dashboard.png)
 
 ### 2. Successful Case Intelligence
 
-Case #11 — a real synthetic Demo Center Scenario A execution, shown
+Case #15 — a real synthetic Demo Center Scenario A execution, shown
 through the full Detect → Diagnose → Predict → Decide → Act → Measure →
-Audit pipeline: a 75% recovery prediction, `retry_payment` selected with
-a ₹21.39 expected value, a successful ₹29.00 recovery, and the resulting
-audit trail.
+Audit pipeline: an ~80% recovery prediction from the active trained
+model, `retry_payment` auto-approved and executed with a ₹23.05 expected
+value, a successful ₹29.00 recovery, and the resulting audit trail.
 
-![RecoverAI Successful Case Intelligence](docs/screenshots/02-case-intelligence.png)
+![Case Intelligence](docs/screenshots/02-case-intelligence.png)
 
 ### 3. Agent Decision & Safety
 
-Case #1 — the safety boundary in action: low model confidence, repeated
-recovery failures, and the maximum-automated-decisions limit each
-trigger human review. The system does not execute the recovery action
-while review is required.
+Case #7 — a real ₹2,84,999.50 case: the agent still identifies
+`request_method_update` as its preferred action, but the amount alone
+crosses the high-value human-review threshold, so the deterministic
+`high_value_transaction` risk flag forces human review regardless — the
+flag can only add a review requirement, never remove one the agent
+already has. The Decide stage shows "Awaiting human review" and Execute
+stays disabled — the system does not execute the recovery action while
+review is required.
 
-![RecoverAI Agent Decision and Safety](docs/screenshots/03-agent-decision.png)
+![Agent Decision and Safety](docs/screenshots/03-agent-decision.png)
 
 ### 4. Model Intelligence
 
 The ML layer is exposed, not hidden behind the agent: the active model
-(logistic regression, isotonic-calibrated) and its honestly-measured
-synthetic sandbox evaluation — ROC-AUC 0.870, PR-AUC 0.658, Brier score
-0.123, F1 0.550 — alongside a worked explanation of one real prediction.
+(calibrated logistic regression, isotonic calibration) and its
+honestly-measured synthetic held-out evaluation — ROC-AUC 0.840, PR-AUC
+0.591, Brier score 0.134, F1 0.472 — alongside a worked explanation of
+one real prediction and its contributing factors. These are synthetic
+sandbox evaluation numbers, not a production or real-world benchmark —
+see [Synthetic Data Disclaimer](#synthetic-data-disclaimer).
 
-![RecoverAI Model Intelligence](docs/screenshots/04-model-intelligence.png)
+![Model Intelligence](docs/screenshots/04-model-intelligence.png)
 
 ### 5. Demo Center
 
@@ -115,7 +128,7 @@ Expired Card → Method Update, Retry & Cooldown Protection, and High
 Value → Human Review — each running the real API and pipeline against a
 freshly isolated synthetic case, not a presentation-only UI simulation.
 
-![RecoverAI Demo Center](docs/screenshots/05-demo-center.png)
+![Demo Center](docs/screenshots/05-demo-center.png)
 
 ## AI/ML
 
@@ -291,7 +304,7 @@ only stands between an *unreviewed* request and the payment gateway.
   endpoints, invalid/malformed/extreme inputs, cooldown and retry-limit
   protections, agent tool-offer restrictions, and demo-fixture isolation.
 - Backend test suite: 244 tests passing.
-- Frontend test suite: 30 tests passing.
+- Frontend test suite: 46 tests passing.
 - TypeScript type-checking: clean.
 - Production build: succeeds.
 
@@ -332,8 +345,12 @@ API — nothing is scripted UI text:
 Model metrics are computed once, honestly, on a held-out test set, and
 surfaced via `GET /api/v1/ml/evaluation` and the Model Intelligence view
 — never hand-typed into the UI. See that endpoint for the actual current
-numbers; this README does not restate a point-in-time snapshot that would
-go stale.
+numbers; this section does not restate a point-in-time snapshot that
+would go stale. (The Model Intelligence screenshot under
+[Product Screenshots](#product-screenshots) does state concrete numbers
+— those describe that specific committed image, captured after the most
+recent training run, not a live claim that updates as the model is
+retrained.)
 
 ## Synthetic Data Disclaimer
 
@@ -346,7 +363,20 @@ all synthetically generated or simulated. Nothing here is:
 - a measurement of real-world recovery uplift or ROI,
 - a production-grade LLM evaluation (the LLM path is implemented and
   unit-tested against a mocked transport; it has not been exercised
-  against a live Anthropic API key in this environment).
+  against a live Anthropic API key in this environment),
+- a benchmarkable real-world fraud/payments ML result. The model's
+  ROC-AUC/PR-AUC/Brier/F1 figures (see [Evaluation](#evaluation) and the
+  Model Intelligence screenshot above) are computed on a held-out split
+  of the **same synthetic, generatively-labeled dataset** the model was
+  trained on — a measure of internal consistency on that dataset, not a
+  claim about how the model would perform on real payment-recovery
+  outcomes.
+
+Demo Center scenario outcomes (e.g. "Scenario A recovers ₹29.00") are
+real executions of the real pipeline against synthetic fixtures — real
+in the sense that no result is scripted or hand-typed, but still bounded
+entirely within this sandbox, not a business/production performance
+claim.
 
 Every screen that shows model or economics figures labels them as
 sandbox/synthetic explicitly (e.g. "Synthetic Sandbox Evaluation",
