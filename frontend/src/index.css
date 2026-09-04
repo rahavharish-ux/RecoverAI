@@ -1,39 +1,52 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------
-   RecoverAI design tokens — the single source of truth for color and
-   type across every view. Change a value here, not in a component.
+   RecoverAI design tokens — the single source of truth for color, type,
+   and spacing across every view. Change a value here, not in a component.
+   Full reasoning lives in DESIGN.md.
+
+   Light theme, chosen deliberately (not inherited): judged live on an
+   external display in a lit room, where a dark canvas and mid-grey text
+   lose most of their effective contrast. See DESIGN.md for the argument.
+
    Semantic intent (do not repurpose):
-     canvas/surface/line  — structure, never carries meaning on its own
-     brand (electric blue)— primary interaction: buttons, links, active nav
-     ai (indigo)           — AI/agent-attributed content only
-     success (green)       — recovered revenue, executed, resolved
-     warning (amber)       — revenue at risk, caution flags
-     danger (red)          — fraud, HITL/blocking, escalation
+     canvas/surface/surface-raised/line  — structure, never carries meaning
+       on its own. surface-raised is reserved for the ONE hero element per
+       screen — never stack more than one raised surface on a page.
+     brand (blue)   — the single interactive accent: buttons, links, focus,
+       active nav. Never a money state.
+     success        — recovered revenue, executed, resolved.
+     danger         — failed payments, hard declines, HITL/blocking.
+     warning        — caution: revenue at risk, an action actively
+       retrying, low-confidence flags. One amber for "attention, not yet
+       resolved" — deliberately not split into two near-identical hues.
+     pending        — literally an alias of `muted`: pending is the
+       ABSENCE of an assigned state, not a state of its own, so it stays
+       neutral rather than inventing a fifth hue.
    ------------------------------------------------------------------- */
 @theme {
-  --color-canvas: #0a0e1a;
-  --color-surface: #0f1526;
-  --color-surface-hover: #151d33;
-  --color-surface-2: #131a2c;
+  --color-canvas: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-hover: #eef1f5;
+  --color-surface-2: #f0f2f5;
+  --color-surface-raised: #eaf1fe;
 
-  --color-line: #1c2438;
-  --color-line-strong: #2a3554;
+  --color-line: #e1e5eb;
+  --color-line-strong: #c6ccd6;
 
-  --color-brand: #3b82f6;
-  --color-brand-strong: #2563eb;
+  --color-brand: #1d4ed8;
+  --color-brand-strong: #1440bf;
 
-  --color-ai: #818cf8;
+  --color-success: #0f7a45;
+  --color-warning: #8a5b0f;
+  --color-danger: #b3242a;
+  --color-pending: #5b6472;
 
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
+  --color-ink: #12161c;
+  --color-muted: #5b6472;
+  --color-faint: #566072;
 
-  --color-ink: #f3f6fb;
-  --color-muted: #8b95ad;
-  --color-faint: #5f6b85;
-
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 

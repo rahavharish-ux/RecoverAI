@@ -35,7 +35,7 @@ const BASE_CASE = {
   customer_id: 55,
   amount_at_risk_cents: 2900,
   amount_recovered_cents: 0,
-  currency: 'usd',
+  currency: 'inr',
   opened_at: '2026-01-01T00:00:00Z',
   resolved_at: null,
   resolution_reason: null,

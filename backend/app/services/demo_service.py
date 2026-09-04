@@ -162,7 +162,7 @@ def _create_demo_fixture(db: Session, profile: DemoScenarioProfile) -> tuple[Inv
         subscription_id=subscription.id,
         customer_id=customer.id,
         amount_cents=profile.amount_cents,
-        currency="usd",
+        currency="inr",
         due_date=now + timedelta(days=1),
         status="open",
         created_at=now,

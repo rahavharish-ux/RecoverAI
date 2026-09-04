@@ -16,7 +16,7 @@ export function EconomicsSection() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
               { label: 'Revenue at Risk', value: data.revenue_at_risk_cents, tone: 'text-warning' },
-              { label: 'Potential Recoverable', value: data.potential_recoverable_cents, tone: 'text-ai' },
+              { label: 'Potential Recoverable', value: data.potential_recoverable_cents, tone: 'text-pending' },
               { label: 'Recovered Revenue', value: data.recovered_revenue_cents, tone: 'text-success' },
               { label: 'Net Recovery Value', value: data.net_recovery_value_cents, tone: 'text-success' },
             ].map((item) => (

@@ -11,7 +11,7 @@ const SAMPLE_CASE: CaseSummary = {
   status: 'open',
   amount_at_risk_cents: 1249900,
   amount_recovered_cents: 0,
-  currency: 'usd',
+  currency: 'inr',
   opened_at: '2026-09-04T10:00:00Z',
   resolved_at: null,
   resolution_reason: null,

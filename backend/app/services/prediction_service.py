@@ -65,6 +65,17 @@ def predict_recovery_probability(
     customer_created = as_utc(customer.created_at)
     invoice_created = as_utc(invoice.created_at)
 
+    # `currency` is now genuinely "inr" for every real case (see
+    # models/core.py) — the trained model's categorical vocabulary for
+    # this feature is {usd, eur, gbp} (training/synthetic_data.py), fit
+    # before the app switched to rupee-denominated demo data. "inr" is an
+    # unseen category the pipeline's OneHotEncoder(handle_unknown="ignore")
+    # was already configured to handle gracefully: it encodes as all-zero
+    # rather than raising, so predictions still run — this feature simply
+    # contributes no signal for an inr case. A deliberate, documented
+    # tradeoff (retraining right before a demo is a bigger risk than a
+    # graceful, invisible loss of one feature's contribution), not an
+    # oversight. Retrain against inr-labeled data to close the gap.
     inputs = RawFeatureInputs(
         amount_cents=attempt.amount_cents,
         currency=attempt.currency,

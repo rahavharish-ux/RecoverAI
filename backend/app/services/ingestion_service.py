@@ -6,6 +6,7 @@ evaluated, and audited exactly like any attempt a real gateway would
 report."""
 
 import logging
+import secrets
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -20,6 +21,20 @@ from app.models.payments import PaymentAttempt
 from app.services import audit_service, policy_service, prediction_service
 
 logger = logging.getLogger(__name__)
+
+_GATEWAY_ID_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+
+def _generate_gateway_payment_id() -> str:
+    """A real, generated-once, persisted identifier in Razorpay's
+    pay_<14 alphanumeric chars> shape — assigned exactly once, when an
+    attempt is first recorded, the same way a real gateway assigns an
+    opaque token at charge creation and never changes it. Never derived
+    from the row's own primary key (a real gateway id isn't a formatted
+    sequence number) and never recomputed at render time — a per-render
+    "fake" id would be exactly the decorative, unstored data this
+    project's no-fabrication rule exists to rule out."""
+    return "pay_" + "".join(secrets.choice(_GATEWAY_ID_ALPHABET) for _ in range(14))
 
 
 @dataclass
@@ -125,6 +140,7 @@ def record_payment_attempt(
         attempt_number=_next_attempt_number(db, invoice.id),
         amount_cents=amount_cents,
         currency=currency,
+        gateway_payment_id=_generate_gateway_payment_id(),
         status=status,
         decline_code=decline_code,
         decline_class=decline_class,

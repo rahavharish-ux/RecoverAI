@@ -19,10 +19,17 @@ const DECIDE_INDEX = 3
 const ACT_INDEX = 4
 const MEASURE_INDEX = 5
 
+// `warning` (amber) means exactly one thing everywhere else in the app:
+// revenue at risk, a caution that hasn't resolved either way. A pipeline
+// step that's merely in progress is not a caution — it's where the
+// process currently is, the same concept "active nav" already uses
+// `brand` for. `completed` drops to neutral: a stage having happened
+// isn't itself a money-recovered signal (that's `success`, reserved for
+// the terminal recovered outcome) — it's just a fact, so it reads quiet.
 const NODE_STYLES: Record<StageStatus, string> = {
   pending: 'border-line-strong bg-surface-2 text-faint',
-  completed: 'border-brand bg-brand text-white',
-  active: 'border-ai bg-ai/15 text-ai',
+  completed: 'border-line-strong bg-surface-2 text-ink',
+  active: 'border-brand bg-brand text-white',
   blocked: 'border-danger bg-danger/15 text-danger',
   success: 'border-success bg-success text-white',
 }
@@ -30,7 +37,7 @@ const NODE_STYLES: Record<StageStatus, string> = {
 const LABEL_STYLES: Record<StageStatus, string> = {
   pending: 'text-faint',
   completed: 'text-ink',
-  active: 'text-ai',
+  active: 'text-brand',
   blocked: 'text-danger',
   success: 'text-success',
 }

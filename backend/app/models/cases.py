@@ -22,9 +22,9 @@ class Case(Base):
     status: Mapped[CaseStatus] = mapped_column(
         SAEnum(CaseStatus, native_enum=False, length=20), default=CaseStatus.OPEN
     )
-    amount_at_risk_cents: Mapped[int] = mapped_column(Integer)
+    amount_at_risk_cents: Mapped[int] = mapped_column(Integer)  # see Invoice.amount_cents on naming
     amount_recovered_cents: Mapped[int] = mapped_column(Integer, default=0)
-    currency: Mapped[str] = mapped_column(String(3), default="usd")
+    currency: Mapped[str] = mapped_column(String(3), default="inr")
     opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     resolution_reason: Mapped[str | None] = mapped_column(String(160), nullable=True)

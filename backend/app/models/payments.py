@@ -20,8 +20,23 @@ class PaymentAttempt(Base):
     payment_method_id: Mapped[int] = mapped_column(ForeignKey("payment_methods.id"))
     case_id: Mapped[int | None] = mapped_column(ForeignKey("cases.id"), nullable=True)
     attempt_number: Mapped[int] = mapped_column(Integer)
+    # Named "cents" for historical reasons — the value is always the
+    # smallest currency unit (cents or paise; the scaling is identical),
+    # and app/ml/schema.py::NUMERIC_FEATURES + the already-trained model
+    # artifact reference this exact key name. Renaming it would mean
+    # threading a rename through the ML feature pipeline right before a
+    # demo for a purely cosmetic gain — not worth the risk. See DESIGN.md.
     amount_cents: Mapped[int] = mapped_column(Integer)
-    currency: Mapped[str] = mapped_column(String(3), default="usd")
+    currency: Mapped[str] = mapped_column(String(3), default="inr")
+    # A real, persisted Razorpay-shaped identifier, generated once at
+    # ingestion (see services/ingestion_service.py) and never regenerated
+    # — the same pattern a real gateway uses (assign an opaque id at
+    # creation, return it forever after). Deliberately NOT derived from
+    # the row's own integer id, and deliberately NOT computed on the fly
+    # at render time: a per-render "fake" id would be exactly the kind of
+    # decorative, non-stored data this project's no-fabrication rule
+    # exists to rule out.
+    gateway_payment_id: Mapped[str] = mapped_column(String(20))
     status: Mapped[AttemptStatus] = mapped_column(SAEnum(AttemptStatus, native_enum=False, length=20))
     decline_code: Mapped[DeclineCode | None] = mapped_column(
         SAEnum(DeclineCode, native_enum=False, length=30), nullable=True

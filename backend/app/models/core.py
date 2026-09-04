@@ -49,8 +49,14 @@ class Invoice(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     subscription_id: Mapped[int] = mapped_column(ForeignKey("subscriptions.id"))
     customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))
+    # Named "cents" for historical reasons — the value is always the
+    # smallest currency unit (cents or paise; the scaling is identical),
+    # and app/ml/schema.py::NUMERIC_FEATURES + the already-trained model
+    # artifact reference this exact key name. Renaming it would mean
+    # threading a rename through the ML feature pipeline right before a
+    # demo for a purely cosmetic gain — not worth the risk. See DESIGN.md.
     amount_cents: Mapped[int] = mapped_column(Integer)
-    currency: Mapped[str] = mapped_column(String(3), default="usd")
+    currency: Mapped[str] = mapped_column(String(3), default="inr")
     due_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String(20), default="open")  # open | paid | void
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

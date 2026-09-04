@@ -1,16 +1,23 @@
 import { useState } from 'react'
 import { runDemoScenario } from '../api/demo'
 import { formatMoney, formatPercent, titleCase } from '../lib/format'
+import { NEUTRAL_TAG_STYLES } from '../lib/theme'
 import { Card } from './ui/Card'
 
 type Tag = 'RECOVERY' | 'SAFETY' | 'POLICY' | 'HITL' | 'EDGE CASE'
 
+// These are taxonomy labels, not live payment or decision states — none
+// of them earn a hue. Real money/decision states (recovered, failed,
+// pending human review) already carry color elsewhere in the app;
+// reusing that same color language here for a classification tag would
+// make "this scenario is about HITL" look indistinguishable from "this
+// case actually failed." Distinguished by text only, on purpose.
 const TAG_STYLES: Record<Tag, string> = {
-  RECOVERY: 'border-success/30 bg-success/10 text-success',
-  SAFETY: 'border-brand/30 bg-brand/10 text-brand',
-  POLICY: 'border-ai/30 bg-ai/10 text-ai',
-  HITL: 'border-danger/30 bg-danger/10 text-danger',
-  'EDGE CASE': 'border-warning/30 bg-warning/10 text-warning',
+  RECOVERY: NEUTRAL_TAG_STYLES,
+  SAFETY: NEUTRAL_TAG_STYLES,
+  POLICY: NEUTRAL_TAG_STYLES,
+  HITL: NEUTRAL_TAG_STYLES,
+  'EDGE CASE': NEUTRAL_TAG_STYLES,
 }
 
 interface Scenario {
